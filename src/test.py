@@ -3,21 +3,23 @@ import matplotlib.pyplot as plt
 import time
 
 # Simulation parameters
-NUM_DRONES = 10  # Number of drones in the simulation
+NUM_DRONES = 4  # Number of drones in the simulation
 GRID_SIZE = 20   # Size of the search grid
-BETA = 0.15  # Softmax temperature parameter
-ALPHA = 0.7  # Weight between individual and cooperative rewards
+BETA = 0.8  # Softmax temperature parameter
+ALPHA = 0.8  # Weight between individual and cooperative rewards
 
 # Priority map is now input, no need for discovery
-PRIORITY_MAP = np.random.randint(1, 6, (GRID_SIZE, GRID_SIZE))  # Predefined heatmap
+PRIORITY_MAP = np.random.randint(1, 2, (GRID_SIZE, GRID_SIZE))  # Predefined heatmap
 SEARCHED_MAP = np.zeros((GRID_SIZE, GRID_SIZE))  # Track searched areas
+global_visited = []
+
 
 class Drone:
     def __init__(self, drone_id):
         self.id = drone_id  # Unique identifier for the drone
         self.position = np.random.randint(0, GRID_SIZE, size=2)  # Initial random position
-        self.visited_positions = [tuple(self.position)]  # Track visited positions
         self.cumulative_reward = 0  # Keep track of total search priority collected
+        self.visited_positions = [tuple(self.position)]  # Track visited positions
         self.active = True  # Drone status
     
     def compute_reward(self, new_position):
@@ -53,9 +55,10 @@ class Drone:
             best_move = self.softmax_policy(available_actions)
             self.position = best_move
             self.cumulative_reward += self.compute_reward(best_move)
-            SEARCHED_MAP[self.position[0], self.position[1]] += 1  # Mark as searched
+            SEARCHED_MAP[self.position[0], self.position[1]] += 10000000  # Mark as searched
         
         self.visited_positions.append(tuple(self.position))
+        global_visited.append(tuple(self.position))
 
 def run_simulation():
     """ Run the search and visualization of drone movement in real time """
@@ -68,15 +71,15 @@ def run_simulation():
     while True:
         ax.clear()
         ax.imshow(PRIORITY_MAP, cmap='hot', origin='lower', alpha=0.5)  # Display priority map
-        ax.imshow(SEARCHED_MAP, cmap='cool', origin='lower', alpha=0.5)  # Overlay search progress
+        ax.imshow(SEARCHED_MAP, cmap='cool', origin='lower', alpha=0.25)  # Overlay search progress
         
         for drone in drones:
             drone.update_position()
             path = np.array(drone.visited_positions)
             ax.plot(path[:, 1], path[:, 0], linestyle='--', marker='o', markersize=3, label=f'Drone {drone.id}')
         
-        ax.set_xlim(0, GRID_SIZE - 1)
-        ax.set_ylim(0, GRID_SIZE - 1)
+        ax.set_xlim(-1, GRID_SIZE)
+        ax.set_ylim(-1, GRID_SIZE)
         ax.set_title(f"Iteration {iteration + 1}")
         ax.legend()
         ax.grid()
