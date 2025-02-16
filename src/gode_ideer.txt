@@ -1,0 +1,9 @@
+links til gode papers:
+Cracked swarm drone research. (den gode)
+chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://openreview.net/pdf/e0e1e12914f8ad52ec3112741af686145281976b.pdf
+
+Kæmpe nørd har skrevet om boltzmann policy
+chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://arxiv.org/pdf/2204.10759
+
+
+Inplement boltzman policy, source den og fortæl.
