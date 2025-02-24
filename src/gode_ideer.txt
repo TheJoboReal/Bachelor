@@ -1,0 +1,22 @@
+links til gode papers:
+Cracked swarm drone research. (den gode)
+chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://openreview.net/pdf/e0e1e12914f8ad52ec3112741af686145281976b.pdf
+
+Kæmpe nørd har skrevet om boltzmann policy
+chrome-extension://efaidnbmnnnibpcajpcglclefindmkaj/https://arxiv.org/pdf/2204.10759
+
+
+Inplement boltzman policy, source den og fortæl.
+
+Hvordan skal ens value table faktisk se ud? når man gerne vil undersøge alle steder, men nogle er higher intereset.
+Vi er ikke sikre på hvad vi skal forvente.
+
+visulize hver drones pathing så vi kan se hvordan de bevæger sig
+
+
+Samtale med Anders #1:
+Shared Q table (men stadig decentralized?)
+    Den individuelle drones Q table er bestemt ud fra hele gruppen. eller skal vi faktisk have et stort fælles table.
+Skriv ned undervejs
+
+
