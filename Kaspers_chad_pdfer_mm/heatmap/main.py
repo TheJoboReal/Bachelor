@@ -17,7 +17,6 @@ from PIL import Image
 from scipy.ndimage import gaussian_filter
 from shapely.geometry import LineString
 from sklearn.metrics.pairwise import rbf_kernel
-from trajallocpy import Agent, CoverageProblem, Experiment, Task
 from trajgenpy import Utils
 from trajgenpy.Geometries import GeoMultiPolygon, GeoMultiTrajectory, GeoPolygon
 from trajgenpy.Query import query_features
@@ -31,7 +30,6 @@ import cv2
 from shapely import plotting as shplt
 from skimage.draw import polygon as ski_polygon
 
-import HEDAC_basic
 
 
 
