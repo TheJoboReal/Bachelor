@@ -515,7 +515,7 @@ class Environment:
                 img = Image.fromarray(greyscale_with_alpha, mode='LA')
                 # Create a filename with the slider values
                 slider_values = "_".join([f"{key}_sigma{filter_sliders[key].val:.1f}_alpha{multiplier_sliders[key].val:.1f}" for key in filter_sliders.keys()])
-                filename = f"data/plots/heatmap_{slider_values}.png"
+                filename = f"data/heatmap_{slider_values}.png"
                 
                 # Save the image with the generated filename
                 img.save(filename)
@@ -530,7 +530,7 @@ class Environment:
                 save_button.ax.set_visible(False)
 
                 # Save the plot area
-                plt.savefig("data/plots/plot.png", bbox_inches='tight')
+                plt.savefig("data/plot.png", bbox_inches='tight')
 
                 # Restore the visibility of sliders and buttons
                 for slider in filter_sliders.values():
@@ -553,7 +553,7 @@ class Environment:
         ax.set_axis_off()
 
         if export:
-            plt.savefig("data/plots/plot.png",bbox_inches='tight')
+            plt.savefig("data/plot.png",bbox_inches='tight')
         plt.show()
         
 
