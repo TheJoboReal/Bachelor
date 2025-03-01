@@ -19,4 +19,6 @@ Shared Q table (men stadig decentralized?)
     Den individuelle drones Q table er bestemt ud fra hele gruppen. eller skal vi faktisk have et stort fælles table.
 Skriv ned undervejs
 
+Agent skal kunne se nærmeste agents (antal og distance?)
 
+lav en policy iteration, træn AI over episoder. Brug final policy til actual search
