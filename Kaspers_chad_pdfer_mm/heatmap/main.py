@@ -583,6 +583,13 @@ env = EnvironmentBuilder().set_polygon_file(polygon_file).set_feature(
                 }
 ).set_feature("wetlands",  {"natural": ["water", "wetland"]}).build()
 heatmap = env.get_combined_heatmap(sigma_features, alpha_features)
+# Print heatmap
+print(heatmap)
+plt.imshow(heatmap, cmap='viridis')
+# Save heatmap in file in data/
+with open("data/heatmap.pkl", "wb") as f:
+    pickle.dump(heatmap, f)
+
 # env.informative_coverage(heatmap)
 # env.plot(show_basemap=True, show_features=False, show_heatmap=False,show_coverage=True)
 
