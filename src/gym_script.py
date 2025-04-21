@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 10000
+N_EPISODES = 5000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -250,6 +250,7 @@ class GridWorldEnv(gym.Env):
         self._POI_direction = np.zeros(8)
         if direction_index is not None:
             self._POI_direction[direction_index] = 1
+
 
 
     def remove_POI(self):
@@ -563,11 +564,14 @@ class swarm:
 
                     if steps >= max_steps:
                         terminated = True
+                    if steps >= max_steps or self.accum_info(train_env) > 1:
+                        terminated = True
 
                     done = terminated or truncated
                     agent.obs = next_obs
                     steps += 1
             
+            self.calc_info_pr_episode(train_env, steps)
             progress_bar.update(1)
 
         self.write_q_table()
@@ -613,7 +617,7 @@ class swarm:
 
                     self.episode_cum_reward[episode] += reward
 
-                    if steps >= max_steps or self.accum_info(train_env) > 0.8:
+                    if steps >= max_steps or self.accum_info(train_env) > 1:
                         terminated = True
 
                     done = terminated or truncated
@@ -794,10 +798,22 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-env.heatmap_env()
+# env.heatmap_env()
+
+env.setReward(2, 8, 10)
+env.setReward(4, 15, 10)
+env.setReward(29, 2, 10)
+
+env.set_POI(2, 8)
+env.set_POI(4, 15)
+env.set_POI(29, 2)
 
 
-plt.gca().invert_yaxis()
+# plt.gca().invert_yaxis()
+# plt.imshow(env.world, cmap='viridis', origin='upper')
+# plt.colorbar(label='Reward')
+# plt.title('Environment World')
+# plt.show()
 
 
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
@@ -886,10 +902,10 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-agents.append(agent2)
-agents.append(agent3)
-agents.append(agent4)
-agents.append(agent5)
+# agents.append(agent2)
+# agents.append(agent3)
+# agents.append(agent4)
+# agents.append(agent5)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
