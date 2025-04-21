@@ -795,12 +795,6 @@ env = GridWorldEnv(size=SIZE)
 # env.random_env()
 # env.setReward(4, 4, 9)
 env.heatmap_env()
-env.set_POI(8,3)
-env.set_POI(9,5)
-env.set_POI(9,7)
-env.set_POI(11,13)
-env.set_POI(17,22)
-env.set_POI(17,19)
 
 
 plt.gca().invert_yaxis()
