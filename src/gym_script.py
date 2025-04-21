@@ -52,7 +52,7 @@ class GridWorldEnv(gym.Env):
             {
             "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=int),
             "reward_near": gym.spaces.Box(0, 10, shape=(0, 8), dtype=int),
-            "nearby_agents": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=int),
+            "nearby_agent": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=int),
             "POI_direction": gym.spaces.Box(0, 1, shape=(8,), dtype=int),
             }
         )
@@ -556,8 +556,8 @@ class swarm:
                     if steps % self.update_step == 0:
                         agent.update(obs, action, reward, terminated, next_obs)
 
-                    if episode % 1000 == 0:
-                        self.write_q_table()
+                    # if episode % 1000 == 0:
+                    #    self.write_q_table()
 
                     self.episode_cum_reward[episode] += reward
 
