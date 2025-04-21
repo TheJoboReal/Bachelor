@@ -537,7 +537,7 @@ class swarm:
             for agent in agents:
                 agent.obs = obs
 
-            self.swarm_spawn_uniform(info)
+            self.swarm_spawn_random(info)
 
             self.cum_reward = 0
             steps = 0
@@ -589,7 +589,7 @@ class swarm:
             for agent in agents:
                 agent.obs = obs
             
-            self.swarm_spawn_uniform(info)
+            self.swarm_spawn_random(info)
             self.reset_trajectory()
 
             self.cum_reward = 0
