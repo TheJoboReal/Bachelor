@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 10000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -312,6 +312,7 @@ class SAR_agent:
         self.env = env
         self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
         self.location = np.array([-1, -1], dtype=np.int32)
+        self.obs = tuple()
 
         self.alpha = alpha
         self.epsilon = epsilon
@@ -532,6 +533,10 @@ class swarm:
             progress_bar.set_postfix_str(f"Ep {episode + 1}/{self.n_episodes}")
 
             obs, info = train_env.reset(self.agents)
+
+            for agent in agents:
+                agent.obs = obs
+
             self.swarm_spawn_uniform(info)
 
             self.cum_reward = 0
@@ -542,6 +547,8 @@ class swarm:
                 for agent in self.agents:
                     train_env.state_penalize()
                     train_env.remove_POI()
+
+                    obs = agent.obs
 
                     action = agent.get_action_boltz(obs, info)
                     next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
@@ -558,7 +565,7 @@ class swarm:
                         terminated = True
 
                     done = terminated or truncated
-                    obs = next_obs
+                    agent.obs = next_obs
                     steps += 1
             
             progress_bar.update(1)
