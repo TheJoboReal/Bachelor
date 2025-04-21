@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100
+N_EPISODES = 10000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -585,9 +585,13 @@ class swarm:
             progress_bar.set_postfix_str(f"Ep {episode + 1}/{number_of_episode}")
             # Reset the environment for the start of the episode
             obs, info = train_env.reset(self.agents)
+
+            for agent in agents:
+                agent.obs = obs
+            
             self.swarm_spawn_uniform(info)
             self.reset_trajectory()
-            
+
             self.cum_reward = 0
             terminated = False
             steps = 0
@@ -600,6 +604,8 @@ class swarm:
                     train_env.state_penalize()
                     train_env.remove_POI()
 
+                    obs = agent.obs
+
                     action = agent.mega_greedy_swarm_action(obs,info)
                     
                     next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
@@ -611,7 +617,7 @@ class swarm:
                         terminated = True
 
                     done = terminated or truncated
-                    obs = next_obs
+                    agent.obs = next_obs
                     steps += 1
             
             self.episode_cum_reward.append(self.cum_reward)
