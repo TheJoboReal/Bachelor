@@ -106,7 +106,7 @@ class GridWorldEnv(gym.Env):
         self.world = heatmap_scaled
         # self.normalize_env_reward()
         self.scale_env()
-        self.fill_white_space()
+        # self.fill_white_space()
     
     def reset_visited_states(self):
         self.visited_states = np.zeros((self.size, self.size))
@@ -576,7 +576,6 @@ class swarm:
         for episode in range(number_of_episode):
             train_env = copy.deepcopy(self.env)
             progress_bar.set_postfix_str(f"Ep {episode + 1}/{number_of_episode}")
-
             # Reset the environment for the start of the episode
             obs, info = train_env.reset(self.agents)
             self.swarm_spawn_uniform(info)
@@ -880,10 +879,10 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-# agents.append(agent2)
-# agents.append(agent3)
-# agents.append(agent4)
-# agents.append(agent5)
+agents.append(agent2)
+agents.append(agent3)
+agents.append(agent4)
+agents.append(agent5)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
