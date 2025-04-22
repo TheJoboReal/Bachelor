@@ -22,3 +22,11 @@ Skriv ned undervejs
 Agent skal kunne se nærmeste agents (antal og distance?)
 
 lav en policy iteration, træn AI over episoder. Brug final policy til actual search
+
+
+
+spørgsmål efter døgner
+teste POI, train med rigtige poi og eval på falske? god ide???
+test poi på forskellige maps hvor de alle er "sande" er det bedre??
+multi agent, fix at de bliver trapped. hvorfor glemmer de at rewards er gode? går bare direkte ud af reward cluster.. (single virker fint. nearby agent ødelægger??)
+reward near har kun 1 i det index der er "bedst" så omringet af -9000 er ikke forskelligt fra -10, tager bare den retning med mindst minus. forkert system? ændre?

@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 10000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -589,7 +589,7 @@ class swarm:
             for agent in agents:
                 agent.obs = obs
             
-            self.swarm_spawn_random(info)
+            self.swarm_spawn_uniform(info)
             self.reset_trajectory()
 
             self.cum_reward = 0
