@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 10000
+N_EPISODES = 4000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -245,7 +245,7 @@ class GridWorldEnv(gym.Env):
 
          # --- Update `visited_states` ---
         grid_x, grid_y = self._agent_location
-        self.visited_states[grid_x][grid_y] = 1
+        # self.visited_states[grid_x][grid_y] = 1
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
@@ -548,8 +548,8 @@ class swarm:
                     steps += 1
 
                     for agent in self.agents:
-                        if steps % self.update_step == 0:
-                            agent.update(obs, action, reward, terminated, next_obs)
+                        train_env.visited_states[agent.location[0], agent.location[1]] = 1
+                        agent.update(obs, action, reward, terminated, next_obs)
 
 
             
@@ -605,6 +605,9 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = next_obs
                     steps += 1
+
+                for agent in self.agents:
+                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
             
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
