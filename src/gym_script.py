@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 5000
+N_EPISODES = 4000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -320,8 +320,8 @@ class SAR_agent:
 
         return (
             np.sum(visited_states_near),
-            tuple(reward_near.flatten()),
-            np.sum(nearby_agent)
+            tuple(reward_near.flatten())
+            # np.sum(nearby_agent)
         )
 
     def mega_greedy_swarm_action(self, obs: dict, info: dict) -> int:
@@ -533,9 +533,6 @@ class swarm:
                     action = agent.get_action_boltz(obs, info)
                     next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
 
-                    if steps % self.update_step == 0:
-                        agent.update(obs, action, reward, terminated, next_obs)
-
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
 
@@ -549,6 +546,12 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = next_obs
                     steps += 1
+
+                    for agent in self.agents:
+                        if steps % self.update_step == 0:
+                            agent.update(obs, action, reward, terminated, next_obs)
+
+
             
             # self.calc_info_pr_episode(train_env, steps)
             progress_bar.update(1)
@@ -596,7 +599,7 @@ class swarm:
 
                     self.episode_cum_reward[episode] += reward
 
-                    if steps >= max_steps or self.accum_info(train_env) > 1:
+                    if steps >= max_steps or self.accum_info(train_env) > 0.8:
                         terminated = True
 
                     done = terminated or truncated
@@ -777,15 +780,15 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-# env.heatmap_env()
+env.heatmap_env()
 
-env.setReward(2, 8, 10)
-env.setReward(4, 15, 10)
-env.setReward(29, 2, 10)
+# env.setReward(2, 8, 10)
+# env.setReward(4, 15, 10)
+# env.setReward(29, 2, 10)
 
-env.set_POI(2, 8)
-env.set_POI(4, 15)
-env.set_POI(29, 2)
+# env.set_POI(2, 8)
+# env.set_POI(4, 15)
+# env.set_POI(29, 2)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -879,10 +882,10 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-# agents.append(agent2)
-# agents.append(agent3)
-# agents.append(agent4)
-# agents.append(agent5)
+agents.append(agent2)
+agents.append(agent3)
+agents.append(agent4)
+agents.append(agent5)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
