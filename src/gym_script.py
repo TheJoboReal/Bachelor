@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100
+N_EPISODES = 10000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -42,7 +42,7 @@ class GridWorldEnv(gym.Env):
         self._visited_states_near = np.zeros((5, 5))
         self._reward_near = np.zeros(8)
         self._nearby_agent = np.zeros((5,5))
-        self._POI_direction = np.zeros(8)
+        self._POI_vector = np.array([0, 0], dtype=np.int32)
         self._world_border = (size, size)
         
 
@@ -50,10 +50,10 @@ class GridWorldEnv(gym.Env):
         # Observations are dictionaries with the agent's and the target's location.
         self.observation_space = gym.spaces.Dict(
             {
-            "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=int),
-            "reward_near": gym.spaces.Box(0, 10, shape=(0, 8), dtype=int),
-            "nearby_agent": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=int),
-            "POI_direction": gym.spaces.Box(0, 1, shape=(8,), dtype=int),
+            "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=np.int32),
+            "reward_near": gym.spaces.Box(0, 10, shape=(8,), dtype=np.int32),
+            "nearby_agent": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=np.int32),
+            "POI_vector": gym.spaces.Box(0, 1, shape=(2,), dtype=np.int32),
             }
         )
 
@@ -128,7 +128,7 @@ class GridWorldEnv(gym.Env):
             "visited_states_near": self._visited_states_near,
             "reward_near": self._reward_near,
             "nearby_agent": self.check_nearby_agents(),
-            "POI_direction": self._POI_direction,
+            "POI_vector": self._POI_vector,
         }
     
 
@@ -219,38 +219,18 @@ class GridWorldEnv(gym.Env):
         self.POI_world[x][y] = 1
 
     def get_POI_direction(self):
-        agent_x, agent_y = self._agent_location
-
-        # Find the coordinates of the POI (assuming one POI with value 1 in self.POI_world)
-        poi_coords = np.argwhere(self.POI_world == 1)
-        if len(poi_coords) == 0:
-            # No POI set
-            self._POI_direction = np.zeros(8)
-            return
-        # Take the first one (you can expand this to handle multiple POIs)
-        poi_x, poi_y = poi_coords[0]
-        dx = poi_x - agent_x
-        dy = poi_y - agent_y
-
-        # Normalize direction to one of 8 compass directions
-        if dx != 0:
-            dx = dx // abs(dx)
-        if dy != 0:
-            dy = dy // abs(dy)
-
-        # Find the matching index in _action_to_direction
-        direction_vector = np.array([dx, dy])
-        direction_index = None
-        for index, (ddx, ddy) in self._action_to_direction.items():
-            if np.array_equal(direction_vector, np.array([ddx, ddy])):
-                direction_index = index
-                break
-
-        # Create direction vector
-        self._POI_direction = np.zeros(8)
-        if direction_index is not None:
-            self._POI_direction[direction_index] = 1
-
+        # finds nearest POI and sets the observation a vector pointing towards it
+        x, y = self._agent_location
+        POI = np.where(self.POI_world == 1)
+        POI_x = POI[0]
+        POI_y = POI[1]
+        if len(POI_x) > 0:
+            POI_x = POI_x[0]
+            POI_y = POI_y[0]
+            self._POI_vector = np.array([POI_x - x, POI_y - y], dtype=np.int32)
+        else:
+            self._POI_vector = np.array([0, 0], dtype=np.int32)
+        
 
     def remove_POI(self):
         x, y = self._agent_location
@@ -563,11 +543,14 @@ class swarm:
 
                     if steps >= max_steps:
                         terminated = True
+                    # if steps >= max_steps or self.accum_info(train_env) > 1:
+                    #     terminated = True
 
                     done = terminated or truncated
                     agent.obs = next_obs
                     steps += 1
             
+            # self.calc_info_pr_episode(train_env, steps)
             progress_bar.update(1)
 
         self.write_q_table()
@@ -613,7 +596,7 @@ class swarm:
 
                     self.episode_cum_reward[episode] += reward
 
-                    if steps >= max_steps or self.accum_info(train_env) > 0.8:
+                    if steps >= max_steps or self.accum_info(train_env) > 1:
                         terminated = True
 
                     done = terminated or truncated
@@ -794,11 +777,21 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-env.heatmap_env()
+# env.heatmap_env()
 
+env.setReward(2, 8, 10)
+env.setReward(4, 15, 10)
+env.setReward(29, 2, 10)
 
-plt.gca().invert_yaxis()
+env.set_POI(2, 8)
+env.set_POI(4, 15)
+env.set_POI(29, 2)
 
+# plt.gca().invert_yaxis()
+# plt.imshow(env.world, cmap='viridis', origin='upper')
+# plt.colorbar(label='Reward')
+# plt.title('Environment World')
+# plt.show()
 
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
 
@@ -886,10 +879,10 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-agents.append(agent2)
-agents.append(agent3)
-agents.append(agent4)
-agents.append(agent5)
+# agents.append(agent2)
+# agents.append(agent3)
+# agents.append(agent4)
+# agents.append(agent5)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
