@@ -11,12 +11,12 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100
+N_EPISODES = 100000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
 GAMMA = 0.9
-SIZE = 30
+SIZE = 10
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
@@ -53,7 +53,7 @@ class GridWorldEnv(gym.Env):
             "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=np.int32),
             "reward_near": gym.spaces.Box(0, 10, shape=(8,), dtype=np.int32),
             "nearby_agent": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=np.int32),
-            "POI_vector": gym.spaces.Box(0, 1, shape=(2,), dtype=np.int32),
+            "POI_direction": gym.spaces.Box(0, 1, shape=(8,), dtype=int),
             }
         )
 
@@ -219,17 +219,37 @@ class GridWorldEnv(gym.Env):
         self.POI_world[x][y] = 1
 
     def get_POI_direction(self):
-        # finds nearest POI and sets the observation a vector pointing towards it
-        x, y = self._agent_location
-        POI = np.where(self.POI_world == 1)
-        POI_x = POI[0]
-        POI_y = POI[1]
-        if len(POI_x) > 0:
-            POI_x = POI_x[0]
-            POI_y = POI_y[0]
-            self._POI_vector = np.array([POI_x - x, POI_y - y], dtype=np.int32)
-        else:
-            self._POI_vector = np.array([0, 0], dtype=np.int32)
+        agent_x, agent_y = self._agent_location
+
+        # Find the coordinates of the POI (assuming one POI with value 1 in self.POI_world)
+        poi_coords = np.argwhere(self.POI_world == 1)
+        if len(poi_coords) == 0:
+            # No POI set
+            self._POI_direction = np.zeros(8)
+            return
+        # Take the first one (you can expand this to handle multiple POIs)
+        poi_x, poi_y = poi_coords[0]
+        dx = poi_x - agent_x
+        dy = poi_y - agent_y
+
+        # Normalize direction to one of 8 compass directions
+        if dx != 0:
+            dx = dx // abs(dx)
+        if dy != 0:
+            dy = dy // abs(dy)
+
+        # Find the matching index in _action_to_direction
+        direction_vector = np.array([dx, dy])
+        direction_index = None
+        for index, (ddx, ddy) in self._action_to_direction.items():
+            if np.array_equal(direction_vector, np.array([ddx, ddy])):
+                direction_index = index
+                break
+
+        # Create direction vector
+        self._POI_direction = np.zeros(8)
+        if direction_index is not None:
+            self._POI_direction[direction_index] = 1
         
 
     def remove_POI(self):
@@ -245,7 +265,7 @@ class GridWorldEnv(gym.Env):
 
          # --- Update `visited_states` ---
         grid_x, grid_y = self._agent_location
-        # self.visited_states[grid_x][grid_y] = 1
+        self.visited_states[grid_x][grid_y] = 1
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
@@ -317,10 +337,12 @@ class SAR_agent:
         visited_states_near = obs["visited_states_near"]
         reward_near = obs["reward_near"]
         nearby_agent = obs["nearby_agent"]
+        poi = obs["POI_vector"]
 
         return (
             np.sum(visited_states_near),
             tuple(reward_near.flatten())
+            # tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
@@ -549,6 +571,7 @@ class swarm:
 
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
+                    agent.update(obs, action, reward, terminated, next_obs)
 
                     self.episode_cum_reward[episode] += reward
 
@@ -561,10 +584,6 @@ class swarm:
                     agent.obs = next_obs
                     steps += 1
 
-                    for agent in self.agents:
-                        x, y = np.clip(agent.location, 0, train_env.size - 1)
-                        train_env.visited_states[x, y] = 1
-                        agent.update(obs, action, reward, terminated, next_obs)
 
 
             
@@ -591,7 +610,7 @@ class swarm:
             for agent in agents:
                 agent.obs = obs
             
-            self.swarm_spawn_uniform(info)
+            self.swarm_spawn_random(info)
             self.reset_trajectory()
 
             self.cum_reward = 0
@@ -622,8 +641,6 @@ class swarm:
                     agent.obs = next_obs
                     steps += 1
 
-                for agent in self.agents:
-                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
             
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
@@ -825,15 +842,15 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-env.heatmap_env()
+# env.heatmap_env()
 
-# env.setReward(2, 8, 10)
-# env.setReward(4, 15, 10)
-# env.setReward(29, 2, 10)
+env.setReward(2, 8, 10)
+env.setReward(4, 9, 10)
+env.setReward(9, 2, 10)
 
-# env.set_POI(2, 8)
-# env.set_POI(4, 15)
-# env.set_POI(29, 2)
+env.set_POI(2, 8)
+env.set_POI(4, 9)
+env.set_POI(9, 2)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -927,10 +944,10 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-agents.append(agent2)
-agents.append(agent3)
-agents.append(agent4)
-agents.append(agent5)
+# agents.append(agent2)
+# agents.append(agent3)
+# agents.append(agent4)
+# agents.append(agent5)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
@@ -944,7 +961,7 @@ swarm1.plot_trajectories(env, EVALUATION_EPISODES)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
-swarm1.plot_training_info(EVALUATION_EPISODES)
+swarm1.plot_training_info(N_EPISODES)
 swarm1.plot_info_pr_step(EVALUATION_EPISODES)
 
 
