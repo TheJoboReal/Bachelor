@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 4000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -443,6 +443,8 @@ class swarm:
         self.update_step = update_step
         self.episode_trajectory = []
         self.info_pr_step = []
+        self.training_info = []
+        self.info_pr_step_training = []
 
     def state_visited(self, obs):
         x, y = obs['agent']
@@ -479,6 +481,18 @@ class swarm:
                 visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
         total_rewards = np.sum(self.env.world)
         return visited_rewards / total_rewards
+
+    def calc_info_pr_episode_training(self, train_env, steps):
+        visited_rewards = 0
+        for i in range(train_env.size):
+            for j in range(train_env.size):
+                visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
+        total_rewards = np.sum(self.env.world)
+        
+        info_pr_episode = visited_rewards / total_rewards
+
+        self.info_pr_step_training.append(info_pr_episode/steps)
+        self.training_info.append(info_pr_episode)
 
     def calc_info_pr_episode(self, train_env, steps):
         visited_rewards = 0
@@ -548,13 +562,15 @@ class swarm:
                     steps += 1
 
                     for agent in self.agents:
-                        train_env.visited_states[agent.location[0], agent.location[1]] = 1
+                        x, y = np.clip(agent.location, 0, train_env.size - 1)
+                        train_env.visited_states[x, y] = 1
                         agent.update(obs, action, reward, terminated, next_obs)
 
 
             
             # self.calc_info_pr_episode(train_env, steps)
             progress_bar.update(1)
+            self.calc_info_pr_episode_training(train_env, steps)
 
         self.write_q_table()
         progress_bar.close()
@@ -695,6 +711,32 @@ class swarm:
         plt.title('Info Gain per Episode')
         plt.legend()
         plt.savefig("plots/info_pr_episode.png", dpi=500)
+
+    def plot_training_info(self, number_of_episodes, window_size=50):
+        """Plots info gain per episode with rolling mean and variance shading"""
+        plt.figure()
+
+        x = range(number_of_episodes)
+        y = np.array(self.training_info[:number_of_episodes])
+
+        # Compute rolling mean and standard deviation
+        y_smooth = pd.Series(y).rolling(window=window_size, min_periods=1).mean()
+        y_std = pd.Series(y).rolling(window=window_size, min_periods=1).std()
+
+        # Plot raw data faintly
+        plt.plot(x, y, alpha=0.2, label="Raw Info Gain", color='gray')
+
+        # Plot rolling mean
+        plt.plot(x, y_smooth, label="Smoothed Info Gain", color='red')
+
+        # Shaded area: Mean ± 1 standard deviation
+        plt.fill_between(x, y_smooth - y_std, y_smooth + y_std, color='red', alpha=0.2)
+
+        plt.xlabel('Episodes')
+        plt.ylabel('Info Gain')
+        plt.title('Info Gain per Episode')
+        plt.legend()
+        plt.savefig("plots/training_info_pr_episode.png", dpi=500)
     
     def plot_info_pr_step(self, number_of_episodes, window_size=50):
         """Plots info gain per episode with rolling mean and variance shading"""
@@ -902,6 +944,7 @@ swarm1.plot_trajectories(env, EVALUATION_EPISODES)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
+swarm1.plot_training_info(EVALUATION_EPISODES)
 swarm1.plot_info_pr_step(EVALUATION_EPISODES)
 
 
