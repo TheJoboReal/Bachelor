@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 2000
+N_EPISODES = 20000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.05
@@ -42,7 +42,7 @@ class GridWorldEnv(gym.Env):
         self._visited_states_near = np.zeros((5, 5))
         self._reward_near = np.zeros(8)
         self._nearby_agent = np.zeros((5,5))
-        self._POI_vector = np.array([0, 0], dtype=np.int32)
+        self._POI_direction = np.zeros(8)
         self._world_border = (size, size)
         
 
@@ -128,7 +128,7 @@ class GridWorldEnv(gym.Env):
             "visited_states_near": self._visited_states_near,
             "reward_near": self._reward_near,
             "nearby_agent": self.check_nearby_agents(),
-            "POI_vector": self._POI_vector,
+            "POI_vector": self._POI_direction,
         }
     
 
@@ -167,16 +167,18 @@ class GridWorldEnv(gym.Env):
         rewards = []
         for dx, dy in self._action_to_direction.values():
             nx, ny = x + dx, y + dy
-            if 0 <= nx < self.size and 0 <= ny < self.size:
+            if 0 <= nx < self.size - 1 and 0 <= ny < self.size - 1 and self.world[nx][ny] > 0:
                 rewards.append(self.world[nx][ny])
             else:
-                rewards.append(-np.inf)
-
+                rewards.append(0)
+        # print(rewards)
         # Find the index of the maximum reward
-        max_reward_index = np.argmax(rewards)
-
         self._reward_near = np.zeros(8)
-        self._reward_near[max_reward_index] = 1
+        if sum(rewards) != 0:
+            max_reward_index = np.argmax(rewards)
+
+            self._reward_near = np.zeros(8)
+            self._reward_near[max_reward_index] = 1
 
     def check_visited_near(self):
         # Create a 3x3 local view centered on the agent
@@ -227,8 +229,12 @@ class GridWorldEnv(gym.Env):
             # No POI set
             self._POI_direction = np.zeros(8)
             return
-        # Take the first one (you can expand this to handle multiple POIs)
-        poi_x, poi_y = poi_coords[0]
+
+        # Take the one closest to the agent
+        distances = np.linalg.norm(poi_coords - np.array([agent_x, agent_y]), axis=1)
+        closest_poi_index = np.argmin(distances)
+        poi_x, poi_y = poi_coords[closest_poi_index]
+
         dx = poi_x - agent_x
         dy = poi_y - agent_y
 
@@ -265,7 +271,7 @@ class GridWorldEnv(gym.Env):
 
          # --- Update `visited_states` ---
         grid_x, grid_y = self._agent_location
-        # self.visited_states[grid_x][grid_y] = 1
+        self.visited_states[grid_x][grid_y] = 1
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
@@ -561,12 +567,18 @@ class swarm:
 
             while not done:
                 for agent in self.agents:
-                    train_env.remove_POI()
+                    obs = agent.obs
+                    action = agent.get_action_boltz(obs, info)
+
+                for agent in self.agents:
+                    train_env.state_penalize()
 
                     obs = agent.obs
 
-                    action = agent.get_action_boltz(obs, info)
                     next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
+                    train_env.remove_POI()
+
+                    agent.update(obs, action, reward, terminated, next_obs)
 
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
@@ -577,14 +589,6 @@ class swarm:
                         terminated = True
                     # if steps >= max_steps or self.accum_info(train_env) > 1:
                     #     terminated = True
-
-
-                for agent in agents:
-                    train_env.state_penalize()
-                    obs = agent.obs
-                    agent.update(obs, action, reward, terminated, next_obs)
-                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
-
 
                 done = terminated or truncated
                 agent.obs = next_obs
@@ -627,13 +631,17 @@ class swarm:
             while not done:
 
                 for agent in self.agents:
-                    train_env.remove_POI()
+                    obs = agent.obs
+                    action = agent.mega_greedy_swarm_action(obs,info)
+
+                for agent in self.agents:
+                    train_env.state_penalize()
 
                     obs = agent.obs
 
-                    action = agent.mega_greedy_swarm_action(obs,info)
-                    
                     next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
+                    train_env.remove_POI()
+
                     agent.add_trajectory(info)
 
                     self.episode_cum_reward[episode] += reward
@@ -641,17 +649,14 @@ class swarm:
                     if steps >= max_steps or self.accum_info(train_env) > 0.8:
                         terminated = True
 
-
-                for agent in agents:
-                    train_env.state_penalize()
-                    obs = agent.obs
-                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
-                    print("I am agent: ", agent, "im here: ", agent.location[0], agent.location[1])
-                    print("This is my obs: ", agent.obs)
-            
                 done = terminated or truncated
                 agent.obs = next_obs
                 steps += 1
+
+                for agent in agents:
+                    print("Episode:", episode)
+                    print("I am agent: ", agent, "im here: ", agent.location[0], agent.location[1])
+                    print("This is my obs: ", agent.obs)
 
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
@@ -853,15 +858,19 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-env.heatmap_env()
+# env.heatmap_env()
 
-# env.setReward(2, 8, 10)
-# env.setReward(4, 9, 10)
-# env.setReward(9, 2, 10)
+env.setReward(2, 8, 10)
+env.setReward(4, 9, 10)
+env.setReward(9, 2, 10)
 
-env.set_POI(5, 2)
-env.set_POI(6, 6)
-env.set_POI(9, 12)
+env.set_POI(2, 8)
+env.set_POI(4, 9)
+env.set_POI(9, 2)
+
+# env.set_POI(5, 2)
+# env.set_POI(6, 6)
+# env.set_POI(9, 12)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -955,7 +964,7 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-agents.append(agent2)
+# agents.append(agent2)
 # agents.append(agent3)
 # agents.append(agent4)
 # agents.append(agent5)
