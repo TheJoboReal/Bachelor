@@ -265,7 +265,7 @@ class GridWorldEnv(gym.Env):
 
          # --- Update `visited_states` ---
         grid_x, grid_y = self._agent_location
-        self.visited_states[grid_x][grid_y] = 1
+        # self.visited_states[grid_x][grid_y] = 1
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
@@ -571,7 +571,6 @@ class swarm:
 
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
-                    agent.update(obs, action, reward, terminated, next_obs)
 
                     self.episode_cum_reward[episode] += reward
 
@@ -583,6 +582,11 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = next_obs
                     steps += 1
+
+                for agent in agents:
+                    agent.update(obs, action, reward, terminated, next_obs)
+                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
+
 
 
 
@@ -641,6 +645,8 @@ class swarm:
                     agent.obs = next_obs
                     steps += 1
 
+                for agent in agents:
+                    train_env.visited_states[agent.location[0], agent.location[1]] = 1
             
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
