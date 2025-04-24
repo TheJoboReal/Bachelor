@@ -11,10 +11,10 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100
+N_EPISODES = 2000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
-ALPHA = 0.1
+ALPHA = 0.05
 GAMMA = 0.9
 SIZE = 15
 STEPS = SIZE * SIZE
@@ -561,7 +561,6 @@ class swarm:
 
             while not done:
                 for agent in self.agents:
-                    train_env.state_penalize()
                     train_env.remove_POI()
 
                     obs = agent.obs
@@ -579,15 +578,17 @@ class swarm:
                     # if steps >= max_steps or self.accum_info(train_env) > 1:
                     #     terminated = True
 
-                    done = terminated or truncated
-                    agent.obs = next_obs
-                    steps += 1
 
                 for agent in agents:
+                    train_env.state_penalize()
+                    obs = agent.obs
                     agent.update(obs, action, reward, terminated, next_obs)
                     train_env.visited_states[agent.location[0], agent.location[1]] = 1
 
 
+                done = terminated or truncated
+                agent.obs = next_obs
+                steps += 1
 
 
             
@@ -626,7 +627,6 @@ class swarm:
             while not done:
 
                 for agent in self.agents:
-                    train_env.state_penalize()
                     train_env.remove_POI()
 
                     obs = agent.obs
@@ -641,13 +641,18 @@ class swarm:
                     if steps >= max_steps or self.accum_info(train_env) > 0.8:
                         terminated = True
 
-                    done = terminated or truncated
-                    agent.obs = next_obs
-                    steps += 1
 
                 for agent in agents:
+                    train_env.state_penalize()
+                    obs = agent.obs
                     train_env.visited_states[agent.location[0], agent.location[1]] = 1
+                    print("I am agent: ", agent, "im here: ", agent.location[0], agent.location[1])
+                    print("This is my obs: ", agent.obs)
             
+                done = terminated or truncated
+                agent.obs = next_obs
+                steps += 1
+
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
@@ -950,7 +955,7 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-# agents.append(agent2)
+agents.append(agent2)
 # agents.append(agent3)
 # agents.append(agent4)
 # agents.append(agent5)
