@@ -11,12 +11,12 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
 GAMMA = 0.9
-SIZE = 10
+SIZE = 15
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
@@ -341,8 +341,8 @@ class SAR_agent:
 
         return (
             np.sum(visited_states_near),
-            tuple(reward_near.flatten())
-            # tuple(poi.flatten())
+            tuple(reward_near.flatten()),
+            tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
@@ -848,15 +848,15 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-# env.heatmap_env()
+env.heatmap_env()
 
-env.setReward(2, 8, 10)
-env.setReward(4, 9, 10)
-env.setReward(9, 2, 10)
+# env.setReward(2, 8, 10)
+# env.setReward(4, 9, 10)
+# env.setReward(9, 2, 10)
 
-env.set_POI(2, 8)
-env.set_POI(4, 9)
-env.set_POI(9, 2)
+env.set_POI(5, 2)
+env.set_POI(6, 6)
+env.set_POI(9, 12)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
