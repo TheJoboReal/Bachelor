@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 100
+N_EPISODES = 2000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -319,6 +319,7 @@ class SAR_agent:
         self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
         self.location = np.array([-1, -1], dtype=np.int32)
         self.obs = tuple()
+        self.action = 1
 
         self.alpha = alpha
         self.epsilon = epsilon
@@ -557,7 +558,7 @@ class swarm:
             obs, info = train_env.reset(self.agents)
 
             for agent in agents:
-                agent.obs = obs
+                agent.obs = copy.deepcopy(obs)
 
             self.swarm_spawn_random(info)
 
@@ -567,18 +568,17 @@ class swarm:
 
             while not done:
                 for agent in self.agents:
-                    obs = agent.obs
-                    action = agent.get_action_boltz(obs, info)
+                    action_obs = agent.obs
+                    agent.action = agent.get_action_boltz(action_obs, info)
 
                 for agent in self.agents:
                     train_env.state_penalize()
 
-                    obs = agent.obs
-
-                    next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
+                    next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
                     train_env.remove_POI()
-
-                    agent.update(obs, action, reward, terminated, next_obs)
+                    
+                    update_obs = agent.obs
+                    agent.update(update_obs, agent.action, reward, terminated, next_obs)
 
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
@@ -590,9 +590,9 @@ class swarm:
                     # if steps >= max_steps or self.accum_info(train_env) > 1:
                     #     terminated = True
 
-                done = terminated or truncated
-                agent.obs = next_obs
-                steps += 1
+                    done = terminated or truncated
+                    agent.obs = next_obs
+                    steps += 1
 
 
             
@@ -617,7 +617,7 @@ class swarm:
             obs, info = train_env.reset(self.agents)
 
             for agent in agents:
-                agent.obs = obs
+                agent.obs = copy.deepcopy(obs)
             
             self.swarm_spawn_random(info)
             self.reset_trajectory()
@@ -631,15 +631,14 @@ class swarm:
             while not done:
 
                 for agent in self.agents:
-                    obs = agent.obs
-                    action = agent.mega_greedy_swarm_action(obs,info)
+                    action_obs = agent.obs
+                    agent.action = agent.mega_greedy_swarm_action(action_obs,info)
 
                 for agent in self.agents:
                     train_env.state_penalize()
 
-                    obs = agent.obs
 
-                    next_obs, reward, terminated, truncated, info = train_env.step(action, agent)
+                    next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
                     train_env.remove_POI()
 
                     agent.add_trajectory(info)
@@ -649,9 +648,9 @@ class swarm:
                     if steps >= max_steps or self.accum_info(train_env) > 0.8:
                         terminated = True
 
-                done = terminated or truncated
-                agent.obs = next_obs
-                steps += 1
+                    done = terminated or truncated
+                    agent.obs = next_obs
+                    steps += 1
 
                 for agent in agents:
                     print("Episode:", episode)
@@ -964,7 +963,7 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-# agents.append(agent2)
+agents.append(agent2)
 # agents.append(agent3)
 # agents.append(agent4)
 # agents.append(agent5)
