@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 2000
+N_EPISODES = 300
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -171,7 +171,7 @@ class GridWorldEnv(gym.Env):
                 rewards.append(self.world[nx][ny])
             else:
                 rewards.append(0)
-        # print(rewards)
+        
         # Find the index of the maximum reward
         self._reward_near = np.zeros(8)
         if sum(rewards) != 0:
@@ -356,7 +356,7 @@ class SAR_agent:
     def mega_greedy_swarm_action(self, obs: dict, info: dict) -> int:
         agent_state = self.get_state(obs)
         q_values = self.q_values[agent_state]
-
+      
 
         agent_loc = self.location
         world_border = info["world_border"]  # (size_x, size_y)
@@ -382,6 +382,7 @@ class SAR_agent:
         agent_state = self.get_state(obs)
 
         q_values = self.q_values[agent_state]
+       
 
         # --- Action Masking based on world borders ---
         agent_loc = self.location
@@ -481,8 +482,7 @@ class swarm:
 
     def swarm_spawn_random(self, info):
         self.env.spawn_agents_random(self.agents)
-        for agent in self.agents:
-            agent.trajectory.append(agent.location)
+    
 
     def swarm_spawn_uniform(self, info):
         for agent in self.agents:
@@ -621,6 +621,8 @@ class swarm:
             
             self.swarm_spawn_random(info)
             self.reset_trajectory()
+
+            agent.add_trajectory(info)
 
             self.cum_reward = 0
             terminated = False
