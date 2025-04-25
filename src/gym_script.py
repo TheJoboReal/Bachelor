@@ -11,12 +11,12 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 300
+N_EPISODES = 15000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
 GAMMA = 0.9
-SIZE = 15
+SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
@@ -859,19 +859,21 @@ env = GridWorldEnv(size=SIZE)
 
 # env.random_env()
 # env.setReward(4, 4, 9)
-# env.heatmap_env()
+env.heatmap_env()
 
-env.setReward(2, 8, 10)
-env.setReward(4, 9, 10)
-env.setReward(9, 2, 10)
+# env.setReward(2, 8, 10)
+# env.setReward(4, 9, 10)
+# env.setReward(9, 2, 10)
 
-env.set_POI(2, 8)
-env.set_POI(4, 9)
-env.set_POI(9, 2)
+# env.set_POI(2, 8)
+# env.set_POI(4, 9)
+# env.set_POI(9, 2)
 
-# env.set_POI(5, 2)
-# env.set_POI(6, 6)
-# env.set_POI(9, 12)
+env.set_POI(10, 7)
+env.set_POI(7, 2)
+env.set_POI(12, 13)
+env.set_POI(17, 17)
+env.set_POI(17, 23)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
