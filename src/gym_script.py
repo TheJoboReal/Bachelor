@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 15000
+N_EPISODES = 10000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -348,8 +348,8 @@ class SAR_agent:
 
         return (
             np.sum(visited_states_near),
-            tuple(reward_near.flatten()),
-            tuple(poi.flatten())
+            tuple(reward_near.flatten())
+            # tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
