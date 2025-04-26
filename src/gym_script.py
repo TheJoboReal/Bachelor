@@ -20,7 +20,7 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 10
+EVALUATION_EPISODES = 4
 
 
 #----------------------------------- World--------------------------------------------------- #
@@ -967,7 +967,7 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-agents.append(agent2)
+# agents.append(agent2)
 # agents.append(agent3)
 # agents.append(agent4)
 # agents.append(agent5)
