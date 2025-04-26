@@ -348,8 +348,8 @@ class SAR_agent:
 
         return (
             np.sum(visited_states_near),
-            tuple(reward_near.flatten())
-            # tuple(poi.flatten())
+            tuple(reward_near.flatten()),
+            tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
