@@ -11,16 +11,16 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 10000
+N_EPISODES = 1000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
 GAMMA = 0.9
-SIZE = 30
+SIZE = 16
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 4
+EVALUATION_EPISODES = 1
 
 
 #----------------------------------- World--------------------------------------------------- #
@@ -39,7 +39,7 @@ class GridWorldEnv(gym.Env):
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
         self._agent_location = np.array([1, 1], dtype=np.int32)
-        self._visited_states_near = np.zeros((5, 5))
+        self._visited_states_near = np.zeros(8)
         self._reward_near = np.zeros(8)
         self._nearby_agent = np.zeros((5,5))
         self._POI_direction = np.zeros(8)
@@ -181,14 +181,15 @@ class GridWorldEnv(gym.Env):
             self._reward_near[max_reward_index] = 1
 
     def check_visited_near(self):
-        # Create a 3x3 local view centered on the agent
         x, y = self._agent_location
-
-        for dx in range(-2, 3):
-            for dy in range(-2, 3):
-                nx, ny = x + dx, y + dy
-                if 0 <= nx < self.size and 0 <= ny < self.size:
-                    self._visited_states_near[dx + 2, dy + 2] = self.visited_states[nx][ny]
+        self._visited_states_near = np.zeros(8)  # Reset to zeros
+        for idx, (dx, dy) in self._action_to_direction.items():
+            nx, ny = x + dx, y + dy
+            if 0 <= nx < self.size and 0 <= ny < self.size:
+                self._visited_states_near[idx] = self.visited_states[nx][ny]
+            else:
+                self._visited_states_near[idx] = 0
+        
 
     def update_global_location(self):
         self.global_location[self._agent_location[0], self._agent_location[1]] = 1
@@ -347,9 +348,9 @@ class SAR_agent:
         poi = obs["POI_vector"]
 
         return (
-            np.sum(visited_states_near),
-            tuple(reward_near.flatten()),
-            tuple(poi.flatten())
+            tuple(visited_states_near.flatten()),
+            tuple(reward_near.flatten())
+            # tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
@@ -557,8 +558,9 @@ class swarm:
 
             obs, info = train_env.reset(self.agents)
 
-            for agent in agents:
+            for agent in self.agents:
                 agent.obs = copy.deepcopy(obs)
+
 
             self.swarm_spawn_random(info)
 
@@ -568,8 +570,7 @@ class swarm:
 
             while not done:
                 for agent in self.agents:
-                    action_obs = agent.obs
-                    agent.action = agent.get_action_boltz(action_obs, info)
+                    agent.action = agent.get_action_boltz(agent.obs, info)
 
                 for agent in self.agents:
                     train_env.state_penalize()
@@ -577,8 +578,7 @@ class swarm:
                     next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
                     train_env.remove_POI()
                     
-                    update_obs = agent.obs
-                    agent.update(update_obs, agent.action, reward, terminated, next_obs)
+                    agent.update(agent.obs, agent.action, reward, terminated, next_obs)
 
                     # if episode % 1000 == 0:
                     #    self.write_q_table()
@@ -591,7 +591,7 @@ class swarm:
                     #     terminated = True
 
                     done = terminated or truncated
-                    agent.obs = next_obs
+                    agent.obs = copy.deepcopy(next_obs)
                     steps += 1
 
 
@@ -608,7 +608,7 @@ class swarm:
 
     def evaluate_swarm(self, max_steps, number_of_episode):
         self.revisits = []
-        progress_bar = tqdm(total=number_of_episode, desc="Training Progress", unit="episode", leave=True, dynamic_ncols=True)
+        progress_bar = tqdm(total=number_of_episode, desc="Evaluation Progress", unit="episode", leave=True, dynamic_ncols=True)
 
         for episode in range(number_of_episode):
             train_env = copy.deepcopy(self.env)
@@ -616,7 +616,7 @@ class swarm:
             # Reset the environment for the start of the episode
             obs, info = train_env.reset(self.agents)
 
-            for agent in agents:
+            for agent in self.agents:
                 agent.obs = copy.deepcopy(obs)
             
             self.swarm_spawn_random(info)
@@ -633,8 +633,7 @@ class swarm:
             while not done:
 
                 for agent in self.agents:
-                    action_obs = agent.obs
-                    agent.action = agent.mega_greedy_swarm_action(action_obs,info)
+                    agent.action = agent.mega_greedy_swarm_action(agent.obs,info)
 
                 for agent in self.agents:
                     train_env.state_penalize()
@@ -651,13 +650,13 @@ class swarm:
                         terminated = True
 
                     done = terminated or truncated
-                    agent.obs = next_obs
+                    agent.obs = copy.deepcopy(next_obs)
                     steps += 1
 
                 for agent in agents:
                     print("Episode:", episode)
-                    print("I am agent: ", agent, "im here: ", agent.location[0], agent.location[1])
-                    print("This is my obs: ", agent.obs)
+                    print("I am agent: ", agent.agent_id, "im here: ", agent.location[0], agent.location[1])
+                    print("This is my obs: \n", agent.obs)
 
             self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
@@ -805,7 +804,7 @@ class swarm:
             episodes_to_plot = list(range(num_episodes))
 
         num_plots = len(episodes_to_plot)
-        cols = 3
+        cols = 2
         rows = int(np.ceil(num_plots / cols))
 
         fig, axs = plt.subplots(rows, cols, figsize=(4 * cols, 4.5 * rows))
@@ -869,11 +868,10 @@ env.heatmap_env()
 # env.set_POI(4, 9)
 # env.set_POI(9, 2)
 
-env.set_POI(10, 7)
-env.set_POI(7, 2)
-env.set_POI(12, 13)
-env.set_POI(17, 17)
-env.set_POI(17, 23)
+env.set_POI(4, 2)
+env.set_POI(6, 4)
+env.set_POI(6, 7)
+env.set_POI(12, 10)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -967,7 +965,7 @@ agent9 = SAR_agent(
 
 agents = []
 agents.append(agent1)
-# agents.append(agent2)
+agents.append(agent2)
 # agents.append(agent3)
 # agents.append(agent4)
 # agents.append(agent5)
