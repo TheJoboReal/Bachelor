@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 8000
+N_EPISODES = 1000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -269,6 +269,10 @@ class GridWorldEnv(gym.Env):
         # Map the action (element of {0,1,2,3,4,5,6,7}) to the direction we walk in
         direction = self._action_to_direction[action]
 
+        agent.location = np.clip(
+            agent.location + direction, 0, self.size - 1
+        )
+
         self._agent_location = agent.location
 
          # --- Update `visited_states` ---
@@ -277,12 +281,6 @@ class GridWorldEnv(gym.Env):
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
-
-        # We use `np.clip` to make sure we don't leave the grid bounds
-        agent.location = np.clip(
-            agent.location + direction, 0, self.size - 1
-        )
-
 
         self.global_location[agent.location[0], agent.location[1]] = 1
 
