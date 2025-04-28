@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 1000
+N_EPISODES = 8000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -21,7 +21,8 @@ STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
-
+SEED = 1786
+np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
 
@@ -137,7 +138,7 @@ class GridWorldEnv(gym.Env):
 
     def reset(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=seed)
+        super().reset(seed=SEED)
 
         self._agent_location = self.np_random.integers(0, self.size -1, size=2, dtype=int)
         # reset visited states near and reward_near
@@ -153,7 +154,7 @@ class GridWorldEnv(gym.Env):
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         for agent in agents:
             # We need the following line to seed self.np_random
-            super().reset(seed=seed)
+            super().reset(seed=SEED)
 
             agent.location = self.np_random.integers(0, self.size -1, size=2, dtype=int) 
         
@@ -164,21 +165,19 @@ class GridWorldEnv(gym.Env):
 
     def check_rewards_near(self):
         x, y = self._agent_location
-        rewards = []
-        for dx, dy in self._action_to_direction.values():
+        self._reward_near = np.zeros(8)  # Reset to zeros
+        for idx, (dx, dy) in self._action_to_direction.items():
             nx, ny = x + dx, y + dy
-            if 0 <= nx < self.size - 1 and 0 <= ny < self.size - 1 and self.world[nx][ny] > 0:
-                rewards.append(self.world[nx][ny])
+            if 0 <= nx < self.size and 0 <= ny < self.size:
+                reward = self.world[nx][ny]
+                if reward > 0:
+                    self._reward_near[idx] = 2
+                elif reward == 0:
+                    self._reward_near[idx] = 1
+                else:
+                    self._reward_near[idx] = 0
             else:
-                rewards.append(0)
-        
-        # Find the index of the maximum reward
-        self._reward_near = np.zeros(8)
-        if sum(rewards) != 0:
-            max_reward_index = np.argmax(rewards)
-
-            self._reward_near = np.zeros(8)
-            self._reward_near[max_reward_index] = 1
+                self._reward_near[idx] = 0
 
     def check_visited_near(self):
         x, y = self._agent_location
@@ -270,6 +269,8 @@ class GridWorldEnv(gym.Env):
         # Map the action (element of {0,1,2,3,4,5,6,7}) to the direction we walk in
         direction = self._action_to_direction[action]
 
+        self._agent_location = agent.location
+
          # --- Update `visited_states` ---
         grid_x, grid_y = self._agent_location
         self.visited_states[grid_x][grid_y] = 1
@@ -278,13 +279,10 @@ class GridWorldEnv(gym.Env):
         self.global_location[agent.location[0], agent.location[1]] = 0
 
         # We use `np.clip` to make sure we don't leave the grid bounds
-        self._agent_location = np.clip(
-            self._agent_location + direction, 0, self.size - 1
-        )
-
         agent.location = np.clip(
             agent.location + direction, 0, self.size - 1
         )
+
 
         self.global_location[agent.location[0], agent.location[1]] = 1
 
@@ -348,9 +346,9 @@ class SAR_agent:
         poi = obs["POI_vector"]
 
         return (
-            tuple(visited_states_near.flatten()),
-            tuple(reward_near.flatten())
-            # tuple(poi.flatten())
+            # tuple(visited_states_near.flatten()),
+            tuple(reward_near.flatten()),
+            tuple(poi.flatten())
             # np.sum(nearby_agent)
         )
 
@@ -546,6 +544,7 @@ class swarm:
         swarm_trajectory = []
         for agent in self.agents:
             swarm_trajectory.append(agent.trajectory)
+
         self.episode_trajectory.append(swarm_trajectory)
 
     def train_swarm(self, max_steps):
@@ -624,7 +623,6 @@ class swarm:
 
             agent.add_trajectory(info)
 
-            self.cum_reward = 0
             terminated = False
             steps = 0
             done = False
@@ -653,12 +651,11 @@ class swarm:
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
 
-                for agent in agents:
-                    print("Episode:", episode)
-                    print("I am agent: ", agent.agent_id, "im here: ", agent.location[0], agent.location[1])
-                    print("This is my obs: \n", agent.obs)
+                # for agent in agents:
+                #     print("Episode:", episode)
+                #     print("I am agent: ", agent.agent_id, "im here: ", agent.location[0], agent.location[1])
+                #     print("This is my obs: \n", agent.obs)
 
-            self.episode_cum_reward.append(self.cum_reward)
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
             self.update_episode_trajectory()
@@ -738,6 +735,7 @@ class swarm:
 
         # Shaded area: Mean ± 1 standard deviation
         plt.fill_between(x, y_smooth - y_std, y_smooth + y_std, color='red', alpha=0.2)
+        # :TODO promt 95% standard deviation
 
         plt.xlabel('Episodes')
         plt.ylabel('Info Gain')
@@ -861,17 +859,18 @@ env = GridWorldEnv(size=SIZE)
 env.heatmap_env()
 
 # env.setReward(2, 8, 10)
-# env.setReward(4, 9, 10)
+env.setReward(2, 2, 10)
 # env.setReward(9, 2, 10)
 
 # env.set_POI(2, 8)
 # env.set_POI(4, 9)
 # env.set_POI(9, 2)
 
-env.set_POI(4, 2)
-env.set_POI(6, 4)
+env.set_POI(2, 2)
+env.set_POI(4, 1)
+env.set_POI(5, 3)
 env.set_POI(6, 7)
-env.set_POI(12, 10)
+env.set_POI(9, 11)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -882,7 +881,7 @@ env.set_POI(12, 10)
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
 
 agent1 = SAR_agent(
-    1,
+    0,
     env=env,
     alpha=ALPHA,
     beta=BETA,
@@ -892,7 +891,7 @@ agent1 = SAR_agent(
 
 
 agent2 = SAR_agent(
-    2,
+    1,
     env=env,
     alpha=ALPHA,
     beta=BETA,
