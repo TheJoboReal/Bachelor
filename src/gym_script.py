@@ -36,7 +36,6 @@ class GridWorldEnv(gym.Env):
         self.visited_states = np.zeros((size, size))
         self.global_location = np.zeros((size, size))
         self.POI_world = np.zeros((size, size))
-        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
@@ -110,9 +109,6 @@ class GridWorldEnv(gym.Env):
         self.scale_env()
         # self.fill_white_space()
 
-    def write_q_table(self):
-            np.save(f"q_tables/q_table.npy", dict(self.q_values))
-    
     def reset_visited_states(self):
         self.visited_states = np.zeros((self.size, self.size))
     
@@ -282,6 +278,8 @@ class GridWorldEnv(gym.Env):
 
         self._agent_location = agent.location
 
+        self.visited_states[agent.location[0], agent.location[1]] = 1
+
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
@@ -311,6 +309,7 @@ class SAR_agent:
         env: gym.Env,
         alpha: float,
         beta,
+        q_values,
         epsilon,
         gamma: float = 0.0
     ):
@@ -319,6 +318,8 @@ class SAR_agent:
         self.location = np.array([-1, -1], dtype=np.int32)
         self.obs = tuple()
         self.action = 1
+
+        self.q_values = q_values
 
         self.alpha = alpha
         self.epsilon = epsilon
@@ -338,6 +339,9 @@ class SAR_agent:
     def add_trajectory(self, info):
         location = self.location
         self.trajectory.append(location)
+
+    def write_q_table(self):
+            np.save(f"q_tables/q_table.npy", dict(self.q_values))
         
     def get_state(self, obs: dict):
         reward_near = obs["reward_near"]
@@ -352,7 +356,7 @@ class SAR_agent:
 
     def mega_greedy_swarm_action(self, obs: dict, info: dict) -> int:
         agent_state = self.get_state(obs)
-        q_values = self.env.q_values[agent_state]
+        q_values = self.q_values[agent_state]
       
 
         agent_loc = self.location
@@ -378,7 +382,7 @@ class SAR_agent:
     def get_action_boltz(self, obs: dict, info: dict) -> int:
         agent_state = self.get_state(obs)
 
-        q_values = self.env.q_values[agent_state]
+        q_values = self.q_values[agent_state]
        
 
         # --- Action Masking based on world borders ---
@@ -409,7 +413,7 @@ class SAR_agent:
             return self.env.action_space.sample()
         else:
             agent_state = self.get_state(obs)
-            return int(np.argmax(self.env.q_values[agent_state]))
+            return int(np.argmax(self.q_values[agent_state]))
 
     def update(
         self,
@@ -422,13 +426,13 @@ class SAR_agent:
         agent_state = self.get_state(obs)
         next_agent_state = self.get_state(next_obs)
 
-        future_q_value = (not terminated) * np.max(self.env.q_values[next_agent_state])
+        future_q_value = (not terminated) * np.max(self.q_values[next_agent_state])
 
         temporal_difference = (
-            reward + self.gamma * future_q_value - self.env.q_values[agent_state][action]
+            reward + self.gamma * future_q_value - self.q_values[agent_state][action]
         )
 
-        self.env.q_values[agent_state][action] += self.alpha * temporal_difference
+        self.q_values[agent_state][action] += self.alpha * temporal_difference
         self.training_error.append(temporal_difference)
 
 
@@ -593,7 +597,7 @@ class swarm:
             progress_bar.update(1)
             self.calc_info_pr_episode_training(train_env, steps)
 
-        self.env.write_q_table()
+        # self.write_q_table()
         progress_bar.close()
 
 
@@ -873,11 +877,14 @@ env.set_POI(9, 11)
 
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
 
+q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+
 agent1 = SAR_agent(
     0,
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -888,6 +895,7 @@ agent2 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -897,6 +905,7 @@ agent3 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -906,6 +915,7 @@ agent4 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -915,6 +925,7 @@ agent5 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -924,6 +935,7 @@ agent6 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -933,6 +945,7 @@ agent7 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -942,6 +955,7 @@ agent8 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
@@ -951,6 +965,7 @@ agent9 = SAR_agent(
     env=env,
     alpha=ALPHA,
     beta=BETA,
+    q_values=q_values,
     epsilon=EPSILON,
     gamma=GAMMA
 )
