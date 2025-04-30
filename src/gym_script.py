@@ -11,7 +11,7 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 1000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -21,7 +21,7 @@ STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
-SEED = 1786
+SEED = 100
 np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
@@ -36,6 +36,7 @@ class GridWorldEnv(gym.Env):
         self.visited_states = np.zeros((size, size))
         self.global_location = np.zeros((size, size))
         self.POI_world = np.zeros((size, size))
+        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
@@ -108,6 +109,9 @@ class GridWorldEnv(gym.Env):
         # self.normalize_env_reward()
         self.scale_env()
         # self.fill_white_space()
+
+    def write_q_table(self):
+            np.save(f"q_tables/q_table.npy", dict(self.q_values))
     
     def reset_visited_states(self):
         self.visited_states = np.zeros((self.size, self.size))
@@ -152,11 +156,15 @@ class GridWorldEnv(gym.Env):
         return observation, info
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
-        for agent in agents:
-            # We need the following line to seed self.np_random
-            super().reset(seed=SEED)
+        # We need the following line to seed self.np_random
+        super().reset(seed=SEED)
 
-            agent.location = self.np_random.integers(0, self.size -1, size=2, dtype=int) 
+        for i, agent in enumerate(agents):
+            # Generate two different random locations for agents
+            if i % 2 == 0:
+                agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
+            else:
+                agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
         
 
     def getReward(self):
@@ -264,7 +272,6 @@ class GridWorldEnv(gym.Env):
             self.POI_world[x][y] = 0
 
 
-
     def step(self, action, agent):
         # Map the action (element of {0,1,2,3,4,5,6,7}) to the direction we walk in
         direction = self._action_to_direction[action]
@@ -275,16 +282,12 @@ class GridWorldEnv(gym.Env):
 
         self._agent_location = agent.location
 
-         # --- Update `visited_states` ---
-        grid_x, grid_y = self._agent_location
-        self.visited_states[grid_x][grid_y] = 1
     
         # Reset agent location for nearby agent observation
         self.global_location[agent.location[0], agent.location[1]] = 0
 
         self.global_location[agent.location[0], agent.location[1]] = 1
 
-        self.check_visited_near()
         self.check_rewards_near()
         self.get_POI_direction()
 
@@ -313,7 +316,6 @@ class SAR_agent:
     ):
         self.agent_id = agent_id
         self.env = env
-        self.q_values = defaultdict(lambda: np.zeros(env.action_space.n))
         self.location = np.array([-1, -1], dtype=np.int32)
         self.obs = tuple()
         self.action = 1
@@ -338,13 +340,11 @@ class SAR_agent:
         self.trajectory.append(location)
         
     def get_state(self, obs: dict):
-        visited_states_near = obs["visited_states_near"]
         reward_near = obs["reward_near"]
         nearby_agent = obs["nearby_agent"]
         poi = obs["POI_vector"]
 
         return (
-            # tuple(visited_states_near.flatten()),
             tuple(reward_near.flatten()),
             tuple(poi.flatten())
             # np.sum(nearby_agent)
@@ -352,7 +352,7 @@ class SAR_agent:
 
     def mega_greedy_swarm_action(self, obs: dict, info: dict) -> int:
         agent_state = self.get_state(obs)
-        q_values = self.q_values[agent_state]
+        q_values = self.env.q_values[agent_state]
       
 
         agent_loc = self.location
@@ -378,7 +378,7 @@ class SAR_agent:
     def get_action_boltz(self, obs: dict, info: dict) -> int:
         agent_state = self.get_state(obs)
 
-        q_values = self.q_values[agent_state]
+        q_values = self.env.q_values[agent_state]
        
 
         # --- Action Masking based on world borders ---
@@ -409,7 +409,7 @@ class SAR_agent:
             return self.env.action_space.sample()
         else:
             agent_state = self.get_state(obs)
-            return int(np.argmax(self.q_values[agent_state]))
+            return int(np.argmax(self.env.q_values[agent_state]))
 
     def update(
         self,
@@ -422,13 +422,13 @@ class SAR_agent:
         agent_state = self.get_state(obs)
         next_agent_state = self.get_state(next_obs)
 
-        future_q_value = (not terminated) * np.max(self.q_values[next_agent_state])
+        future_q_value = (not terminated) * np.max(self.env.q_values[next_agent_state])
 
         temporal_difference = (
-            reward + self.gamma * future_q_value - self.q_values[agent_state][action]
+            reward + self.gamma * future_q_value - self.env.q_values[agent_state][action]
         )
 
-        self.q_values[agent_state][action] += self.alpha * temporal_difference
+        self.env.q_values[agent_state][action] += self.alpha * temporal_difference
         self.training_error.append(temporal_difference)
 
 
@@ -532,11 +532,6 @@ class swarm:
         self.info_pr_step.append(info_pr_episode/steps)
         self.info_pr_episode.append(info_pr_episode)
 
-    def write_q_table(self):
-        for agent in self.agents:
-            q_table = agent.q_values
-            agent_id = agent.agent_id
-            np.save(f"q_tables/q_table_agent_{agent_id}.npy", dict(q_table))
 
     def update_episode_trajectory(self):
         swarm_trajectory = []
@@ -575,10 +570,11 @@ class swarm:
                     next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
                     train_env.remove_POI()
                     
+
                     agent.update(agent.obs, agent.action, reward, terminated, next_obs)
 
                     # if episode % 1000 == 0:
-                    #    self.write_q_table()
+                    #    self.env.write_q_table()
 
                     self.episode_cum_reward[episode] += reward
 
@@ -597,7 +593,7 @@ class swarm:
             progress_bar.update(1)
             self.calc_info_pr_episode_training(train_env, steps)
 
-        self.write_q_table()
+        self.env.write_q_table()
         progress_bar.close()
 
 
@@ -633,7 +629,6 @@ class swarm:
 
                 for agent in self.agents:
                     train_env.state_penalize()
-
 
                     next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
                     train_env.remove_POI()
