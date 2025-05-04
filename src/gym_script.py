@@ -3,7 +3,7 @@ import numpy as np
 import gymnasium as gym
 from tqdm import tqdm
 from matplotlib import pyplot as plt
-import pickle
+import dill as pickle
 from IPython.display import display, clear_output
 import copy
 from scipy.ndimage import zoom
@@ -11,17 +11,17 @@ import pandas as pd
 from collections import defaultdict
 import math
 
-N_EPISODES = 1000
+N_EPISODES = 100
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
 GAMMA = 0.9
-SIZE = 16
+SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
-SEED = 100
+SEED = 166
 np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
@@ -838,8 +838,8 @@ class swarm:
 
         # Shared legend
         handles, labels = axs[0].get_legend_handles_labels()
-        fig.legend(handles, labels, loc='center right', bbox_to_anchor=(1.05, 0.5))
-        fig.suptitle("Agent Trajectories per Episode", fontsize=16)
+        # fig.legend(handles, labels, loc='center right', bbox_to_anchor=(1.05, 0.5))
+        # fig.suptitle("Agent Trajectories per Episode", fontsize=16)
         plt.tight_layout(rect=[0, 0, 0.95, 0.95])
         # Save the entire plot as an image file
         plt.savefig("plots/agent_trajectories.png", dpi=500)
@@ -863,11 +863,11 @@ env.setReward(2, 2, 10)
 # env.set_POI(4, 9)
 # env.set_POI(9, 2)
 
-env.set_POI(2, 2)
-env.set_POI(4, 1)
-env.set_POI(5, 3)
-env.set_POI(6, 7)
-env.set_POI(9, 11)
+env.set_POI(7, 2)
+env.set_POI(10, 5)
+env.set_POI(9, 7)
+env.set_POI(11, 16)
+env.set_POI(17, 17)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
@@ -983,6 +983,9 @@ agents.append(agent2)
 
 swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 swarm1.train_swarm(STEPS)
+
+with open('q_values.pkl', 'wb') as f:
+    pickle.dump(q_values, f)
 
 swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
 swarm1.plot_trajectories(env, EVALUATION_EPISODES)
