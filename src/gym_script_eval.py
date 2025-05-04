@@ -21,7 +21,7 @@ STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
-SEED = 45
+SEED = 78
 np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
@@ -844,6 +844,36 @@ class swarm:
         # Save the entire plot as an image file
         plt.savefig("plots/agent_trajectories.png", dpi=500)
 
+    def plot_single_episode(self, train_env):
+        world_map = train_env.world
+        fig, ax = plt.subplots(figsize=(8, 8))
+
+        ax.imshow(
+            world_map.T,
+            origin="lower",
+            cmap="Greys",
+            interpolation="nearest",
+            extent=[0, world_map.shape[0], 0, world_map.shape[1]]
+        )
+
+        swarm_traj = self.episode_trajectory[-1]
+        num_agents = len(self.agents)
+
+        for agent_id in range(num_agents):
+            traj = np.array(swarm_traj[agent_id])
+            # Plot trajectory line
+            ax.plot(traj[:, 0], traj[:, 1], label=f"A{agent_id}", alpha=0.7)
+            # Plot spawn point (first position)
+            ax.scatter(traj[0, 0], traj[0, 1], s=40, marker='o', edgecolors='k', facecolors='none')
+
+        ax.set_title(f"Episode {len(self.episode_trajectory)}")
+        ax.set_xlim(0, train_env.size)
+        ax.set_ylim(0, train_env.size)
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.label_outer()
+
+        plt.savefig("plots/agent_trajectories.png", dpi=500)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
@@ -988,7 +1018,8 @@ swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 
 swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
 
-swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+# swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+swarm1.plot_single_episode(env)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
