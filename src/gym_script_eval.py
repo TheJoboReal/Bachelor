@@ -21,7 +21,7 @@ STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
-SEED = 78
+SEED = 795
 np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
@@ -154,6 +154,8 @@ class GridWorldEnv(gym.Env):
         observation = self._get_obs()
         info = self._get_info()
 
+        for agent in agents:
+            print("Agent ", agent.agent_id, "\n", self._agent_poi[agent.agent_id])
         return observation, info
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
