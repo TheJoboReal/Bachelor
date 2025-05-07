@@ -11,6 +11,8 @@ import pandas as pd
 from collections import defaultdict
 import math
 
+input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table: "))
+
 N_EPISODES = 10000
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
@@ -20,7 +22,7 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 1
+EVALUATION_EPISODES = 10
 SEED = 166
 
 #----------------------------------- World--------------------------------------------------- #
@@ -555,8 +557,8 @@ class swarm:
 
             # self.swarm_spawn_random(info)
             self.env.spawn_agents_random(self.agents, seed=seed)
-            for agent in agents:
-                print("agent: ", agent.agent_id, " Location: ", agent.location)
+            # for agent in agents:
+            #     print("agent: ", agent.agent_id, " Location: ", agent.location)
 
             self.cum_reward = 0
             steps = 0
@@ -840,6 +842,36 @@ class swarm:
         # Save the entire plot as an image file
         plt.savefig("plots/agent_trajectories.png", dpi=500)
 
+    def plot_single_episode(self, train_env):
+        world_map = train_env.world
+        fig, ax = plt.subplots(figsize=(8, 8))
+
+        ax.imshow(
+            world_map.T,
+            origin="lower",
+            cmap="Greys",
+            interpolation="nearest",
+            extent=[0, world_map.shape[0], 0, world_map.shape[1]]
+        )
+
+        swarm_traj = self.episode_trajectory[-1]
+        num_agents = len(self.agents)
+
+        for agent_id in range(num_agents):
+            traj = np.array(swarm_traj[agent_id])
+            # Plot trajectory line
+            ax.plot(traj[:, 0], traj[:, 1], label=f"A{agent_id}", alpha=0.7)
+            # Plot spawn point (first position)
+            ax.scatter(traj[0, 0], traj[0, 1], s=40, marker='o', edgecolors='k', facecolors='none')
+
+        ax.set_title(f"Episode {len(self.episode_trajectory)}")
+        ax.set_xlim(0, train_env.size)
+        ax.set_ylim(0, train_env.size)
+        ax.set_xlabel("X")
+        ax.set_ylabel("Y")
+        ax.label_outer()
+
+        plt.savefig("plots/agent_trajectories.png", dpi=500)
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
@@ -872,8 +904,13 @@ env.set_POI(17, 17)
 # plt.show()
 
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
-
 q_values = defaultdict(lambda: np.zeros(env.action_space.n))
+
+if(input == 1):
+    with open('q_values.pkl', 'rb') as f:
+        q_values = pickle.load(f)
+elif(input == 0):
+    q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
 agent1 = SAR_agent(
     0,
@@ -978,17 +1015,22 @@ agents.append(agent2)
 
 
 swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
-swarm1.train_swarm(STEPS)
 
-with open('q_values.pkl', 'wb') as f:
-    pickle.dump(q_values, f)
+if(input == 0):
+    swarm1.train_swarm(STEPS)
+    with open('q_values.pkl', 'wb') as f:
+        pickle.dump(q_values, f)
+    swarm1.plot_training_info(N_EPISODES)
 
-swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
-swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+if(input == 1):
+    swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
+
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
-swarm1.plot_training_info(N_EPISODES)
 swarm1.plot_info_pr_step(EVALUATION_EPISODES)
 
-
+if(EVALUATION_EPISODES == 1):
+    swarm1.plot_single_episode(env)
+else:
+    swarm1.plot_trajectories(env, EVALUATION_EPISODES)

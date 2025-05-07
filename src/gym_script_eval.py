@@ -1021,7 +1021,7 @@ swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
 
 swarm1.plot_trajectories(env, EVALUATION_EPISODES)
-# swarm1.plot_single_episode(env)
+swarm1.plot_single_episode(env)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
