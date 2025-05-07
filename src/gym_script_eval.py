@@ -20,9 +20,9 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 1
-SEED = 795
-np.random.seed(SEED)
+EVALUATION_EPISODES = 10
+# SEED = 795
+# np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
 
@@ -143,7 +143,7 @@ class GridWorldEnv(gym.Env):
 
     def reset(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=SEED)
+        # super().reset(seed=SEED)
 
         self._agent_location = self.np_random.integers(0, self.size -1, size=2, dtype=int)
         # reset visited states near and reward_near
@@ -154,13 +154,11 @@ class GridWorldEnv(gym.Env):
         observation = self._get_obs()
         info = self._get_info()
 
-        for agent in agents:
-            print("Agent ", agent.agent_id, "\n", self._agent_poi[agent.agent_id])
         return observation, info
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=SEED)
+        # super().reset(seed=SEED)
 
         for i, agent in enumerate(agents):
             # Generate two different random locations for agents
@@ -472,6 +470,7 @@ class swarm:
         self.info_pr_step = []
         self.training_info = []
         self.info_pr_step_training = []
+        self.step_pr_episode = []
 
     def state_visited(self, obs):
         x, y = obs['agent']
@@ -647,6 +646,7 @@ class swarm:
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
             self.update_episode_trajectory()
+            self.step_pr_episode.append(steps)
 
             progress_bar.update(1)
 
@@ -1008,9 +1008,10 @@ agents.append(agent2)
 swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 
 swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
+print("Steps pr episode: ", swarm1.step_pr_episode)
 
-# swarm1.plot_trajectories(env, EVALUATION_EPISODES)
-swarm1.plot_single_episode(env)
+swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+# swarm1.plot_single_episode(env)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)

@@ -555,6 +555,8 @@ class swarm:
 
 
             self.swarm_spawn_random(info)
+            # for agent in agents:
+            #     print("agent: ", agent.agent_id, " Location: ", agent.location)
 
             self.cum_reward = 0
             steps = 0
