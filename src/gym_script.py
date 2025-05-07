@@ -22,7 +22,6 @@ EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 1
 SEED = 166
-np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
 
@@ -36,6 +35,8 @@ class GridWorldEnv(gym.Env):
         self.visited_states = np.zeros((size, size))
         self.global_location = np.zeros((size, size))
         self.POI_world = np.zeros((size, size))
+        self._poi_list = []
+        self._agent_poi = []
 
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
@@ -131,20 +132,21 @@ class GridWorldEnv(gym.Env):
             "nearby_agent": self.check_nearby_agents(),
             "POI_vector": self._POI_direction,
         }
-    
+
+    def split_poi_list(self, num_agents):
+        split_list = [self._poi_list[i::num_agents] for i in range(num_agents)]
+        self._agent_poi = split_list
 
     def reset_global_location(self):
         self.global_location = np.zeros((self.size, self.size))
 
     def reset(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=SEED)
 
-        self._agent_location = self.np_random.integers(0, self.size -1, size=2, dtype=int)
         # reset visited states near and reward_near
         self.reset_visited_states()
         self.reset_global_location()
-
+        self.split_poi_list(num_agents=len(agents))
 
         observation = self._get_obs()
         info = self._get_info()
@@ -153,7 +155,7 @@ class GridWorldEnv(gym.Env):
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=SEED)
+        super().reset(seed=seed)
 
         for i, agent in enumerate(agents):
             # Generate two different random locations for agents
@@ -183,17 +185,6 @@ class GridWorldEnv(gym.Env):
             else:
                 self._reward_near[idx] = 0
 
-    def check_visited_near(self):
-        x, y = self._agent_location
-        self._visited_states_near = np.zeros(8)  # Reset to zeros
-        for idx, (dx, dy) in self._action_to_direction.items():
-            nx, ny = x + dx, y + dy
-            if 0 <= nx < self.size and 0 <= ny < self.size:
-                self._visited_states_near[idx] = self.visited_states[nx][ny]
-            else:
-                self._visited_states_near[idx] = 0
-        
-
     def update_global_location(self):
         self.global_location[self._agent_location[0], self._agent_location[1]] = 1
 
@@ -222,25 +213,27 @@ class GridWorldEnv(gym.Env):
 
 
     def set_POI(self, x, y):
-        self.POI_world[x][y] = 1
+        self._poi_list.append((x, y))
 
-    def get_POI_direction(self):
+    def get_POI_direction(self, agent):
         agent_x, agent_y = self._agent_location
 
         # Find the coordinates of the POI (assuming one POI with value 1 in self.POI_world)
-        poi_coords = np.argwhere(self.POI_world == 1)
+        poi_coords = self._agent_poi[agent.agent_id]
+            
         if len(poi_coords) == 0:
             # No POI set
             self._POI_direction = np.zeros(8)
             return
 
         # Take the one closest to the agent
-        distances = np.linalg.norm(poi_coords - np.array([agent_x, agent_y]), axis=1)
+        distances = [np.linalg.norm(np.array(poi) - np.array([agent_x, agent_y])) for poi in poi_coords]
         closest_poi_index = np.argmin(distances)
         poi_x, poi_y = poi_coords[closest_poi_index]
 
         dx = poi_x - agent_x
         dy = poi_y - agent_y
+
 
         # Normalize direction to one of 8 compass directions
         if dx != 0:
@@ -262,10 +255,10 @@ class GridWorldEnv(gym.Env):
             self._POI_direction[direction_index] = 1
         
 
-    def remove_POI(self):
-        x, y = self._agent_location
-        if(self.POI_world[x][y] > 0):
-            self.POI_world[x][y] = 0
+    def remove_POI(self, agent):
+        self._agent_poi[agent.agent_id] = [
+            poi for poi in self._agent_poi[agent.agent_id] if not np.array_equal(poi, agent.location)
+        ]
 
 
     def step(self, action, agent):
@@ -287,7 +280,7 @@ class GridWorldEnv(gym.Env):
         self.global_location[agent.location[0], agent.location[1]] = 1
 
         self.check_rewards_near()
-        self.get_POI_direction()
+        self.get_POI_direction(agent)
 
         # An environment is completed if and only if the agent has searched all states
         terminated = False
@@ -546,6 +539,7 @@ class swarm:
 
     def train_swarm(self, max_steps):
         progress_bar = tqdm(total=self.n_episodes, desc="Training Progress", unit="episode", leave=True, dynamic_ncols=True)
+        seed = SEED
 
         for episode in range(self.n_episodes):
             train_env = copy.deepcopy(self.env)
@@ -557,8 +551,12 @@ class swarm:
             for agent in self.agents:
                 agent.obs = copy.deepcopy(obs)
 
+            seed += 45
 
-            self.swarm_spawn_random(info)
+            # self.swarm_spawn_random(info)
+            self.env.spawn_agents_random(self.agents, seed=seed)
+            for agent in agents:
+                print("agent: ", agent.agent_id, " Location: ", agent.location)
 
             self.cum_reward = 0
             steps = 0
@@ -572,7 +570,7 @@ class swarm:
                     train_env.state_penalize()
 
                     next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
-                    train_env.remove_POI()
+                    train_env.remove_POI(agent)
                     
 
                     agent.update(agent.obs, agent.action, reward, terminated, next_obs)
@@ -606,6 +604,7 @@ class swarm:
     def evaluate_swarm(self, max_steps, number_of_episode):
         self.revisits = []
         progress_bar = tqdm(total=number_of_episode, desc="Evaluation Progress", unit="episode", leave=True, dynamic_ncols=True)
+        seed = SEED
 
         for episode in range(number_of_episode):
             train_env = copy.deepcopy(self.env)
@@ -615,8 +614,10 @@ class swarm:
 
             for agent in self.agents:
                 agent.obs = copy.deepcopy(obs)
+
+            seed += 45
             
-            self.swarm_spawn_random(info)
+            self.env.spawn_agents_random(self.agents, seed=seed)
             self.reset_trajectory()
 
             agent.add_trajectory(info)
@@ -635,7 +636,7 @@ class swarm:
                     train_env.state_penalize()
 
                     next_obs, reward, terminated, truncated, info = train_env.step(agent.action, agent)
-                    train_env.remove_POI()
+                    train_env.remove_POI(agent)
 
                     agent.add_trajectory(info)
 
@@ -647,11 +648,6 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
-
-                # for agent in agents:
-                #     print("Episode:", episode)
-                #     print("I am agent: ", agent.agent_id, "im here: ", agent.location[0], agent.location[1])
-                #     print("This is my obs: \n", agent.obs)
 
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)

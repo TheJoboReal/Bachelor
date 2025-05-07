@@ -20,9 +20,8 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 1
+EVALUATION_EPISODES = 10
 SEED = 78
-np.random.seed(SEED)
 
 #----------------------------------- World--------------------------------------------------- #
 
@@ -153,7 +152,7 @@ class GridWorldEnv(gym.Env):
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
-        super().reset(seed=SEED)
+        super().reset(seed=seed)
 
         for i, agent in enumerate(agents):
             # Generate two different random locations for agents
@@ -606,6 +605,7 @@ class swarm:
     def evaluate_swarm(self, max_steps, number_of_episode):
         self.revisits = []
         progress_bar = tqdm(total=number_of_episode, desc="Evaluation Progress", unit="episode", leave=True, dynamic_ncols=True)
+        seed = SEED
 
         for episode in range(number_of_episode):
             train_env = copy.deepcopy(self.env)
@@ -615,8 +615,10 @@ class swarm:
 
             for agent in self.agents:
                 agent.obs = copy.deepcopy(obs)
+
+            seed += 45
             
-            self.swarm_spawn_random(info)
+            self.env.spawn_agents_random(self.agents, seed=seed)
             self.reset_trajectory()
 
             agent.add_trajectory(info)
@@ -1018,8 +1020,8 @@ swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 
 swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
 
-# swarm1.plot_trajectories(env, EVALUATION_EPISODES)
-swarm1.plot_single_episode(env)
+swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+# swarm1.plot_single_episode(env)
 swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
