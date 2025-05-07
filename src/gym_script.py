@@ -14,6 +14,7 @@ import math
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table: "))
 
 N_EPISODES = 10000
+N_AGENTS = 2
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -29,8 +30,7 @@ SEED = 166
 
 class GridWorldEnv(gym.Env):
 
-    def __init__(self, size: int = 10):
-        # The size of the square grid
+    def __init__(self, size: int = 10): # The size of the square grid
         self.size = size
         self.trajectory = []
         self.world = np.zeros((size, size))
@@ -39,13 +39,14 @@ class GridWorldEnv(gym.Env):
         self.POI_world = np.zeros((size, size))
         self._poi_list = []
         self._agent_poi = []
+        self.agents_location_list = [np.zeros(2, dtype=int) for _ in range(N_AGENTS)]
 
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
         self._agent_location = np.array([1, 1], dtype=np.int32)
         self._visited_states_near = np.zeros(8)
         self._reward_near = np.zeros(8)
-        self._nearby_agent = np.zeros((5,5))
+        self._nearby_agents = np.zeros(8)
         self._POI_direction = np.zeros(8)
         self._world_border = (size, size)
         
@@ -56,7 +57,7 @@ class GridWorldEnv(gym.Env):
             {
             "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=np.int32),
             "reward_near": gym.spaces.Box(0, 10, shape=(8,), dtype=np.int32),
-            "nearby_agent": gym.spaces.Box(low=-self.size, high=self.size, shape=(5, 2), dtype=np.int32),
+            "nearby_agents": gym.spaces.Box(0, 1, shape=(9,), dtype=int),
             "POI_direction": gym.spaces.Box(0, 1, shape=(8,), dtype=int),
             }
         )
@@ -131,7 +132,7 @@ class GridWorldEnv(gym.Env):
         return {
             "visited_states_near": self._visited_states_near,
             "reward_near": self._reward_near,
-            "nearby_agent": self.check_nearby_agents(),
+            "nearby_agent": self._nearby_agents,
             "POI_vector": self._POI_direction,
         }
 
@@ -190,28 +191,44 @@ class GridWorldEnv(gym.Env):
     def update_global_location(self):
         self.global_location[self._agent_location[0], self._agent_location[1]] = 1
 
-    def check_nearby_agents(self, radius=2, max_agents=5):
-        """Returns a list of relative (dx, dy) vectors to nearby agents."""
-        x, y = self._agent_location
-        vectors = []
+    def check_nearby_agents(self):
+        agent_x, agent_y = self._agent_location
 
-        for dx in range(-radius, radius + 1):
-            for dy in range(-radius, radius + 1):
-                nx, ny = x + dx, y + dy
+        agent_locations = self.agents_location_list
+            
+        if len(agent_locations) == 0:
+            self._POI_direction = np.zeros(8)
+            return
+        # if any(np.array_equal(self._agent_location, loc) for loc in agent_locations):
+        #     self._nearby_agents[8] = 1
+        #     return
 
-                if dx == 0 and dy == 0:
-                    continue 
+        distances = [np.linalg.norm(np.array(poi) - np.array([agent_x, agent_y])) for poi in agent_locations]
+        closest_agent_index = np.argmin(distances)
+        agent_x, agent_y = agent_locations[closest_agent_index]
 
-                if 0 <= nx < self.size and 0 <= ny < self.size:
-                    agent_id = self.global_location[nx][ny]
+        dx = agent_x - agent_x
+        dy = agent_y - agent_y
 
-                    if agent_id != 0:
-                        vectors.append([dx, dy])
 
-        while len(vectors) < max_agents:
-            vectors.append([0, 0])
+        # Normalize direction to one of 8 compass directions
+        if dx != 0:
+            dx = dx // abs(dx)
+        if dy != 0:
+            dy = dy // abs(dy)
 
-        return np.array(vectors[:max_agents], dtype=int)
+        # Find the matching index in _action_to_direction
+        direction_vector = np.array([dx, dy])
+        direction_index = None
+        for index, (ddx, ddy) in self._action_to_direction.items():
+            if np.array_equal(direction_vector, np.array([ddx, ddy])):
+                direction_index = index
+                break
+
+        # Create direction vector
+        self._nearby_agents = np.zeros(8)
+        if direction_index is not None:
+            self._nearby_agents[direction_index] = 1
 
 
     def set_POI(self, x, y):
@@ -271,6 +288,9 @@ class GridWorldEnv(gym.Env):
             agent.location + direction, 0, self.size - 1
         )
 
+        # Set agent location so other agents can see each other
+        self.agents_location_list[agent.agent_id] = agent.location
+
         self._agent_location = agent.location
 
         self.visited_states[agent.location[0], agent.location[1]] = 1
@@ -283,6 +303,7 @@ class GridWorldEnv(gym.Env):
 
         self.check_rewards_near()
         self.get_POI_direction(agent)
+        self.check_nearby_agents()
 
         # An environment is completed if and only if the agent has searched all states
         terminated = False
@@ -345,8 +366,8 @@ class SAR_agent:
 
         return (
             tuple(reward_near.flatten()),
-            tuple(poi.flatten())
-            # np.sum(nearby_agent)
+            tuple(poi.flatten()),
+            tuple(nearby_agent.flatten())
         )
 
     def mega_greedy_swarm_action(self, obs: dict, info: dict) -> int:
@@ -1053,14 +1074,14 @@ if(input == 0):
 
 if(input == 1):
     swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
+    swarm1.plot_reward_episode(EVALUATION_EPISODES)
+    swarm1.plot_revisited(EVALUATION_EPISODES)
+    swarm1.plot_info(EVALUATION_EPISODES)
+    swarm1.plot_info_pr_step(EVALUATION_EPISODES)
+    swarm1.plot_steps(EVALUATION_EPISODES)
+    if(EVALUATION_EPISODES == 1):
+        swarm1.plot_single_episode(env)
+    else:
+        swarm1.plot_trajectories(env, EVALUATION_EPISODES)
 
-swarm1.plot_reward_episode(EVALUATION_EPISODES)
-swarm1.plot_revisited(EVALUATION_EPISODES)
-swarm1.plot_info(EVALUATION_EPISODES)
-swarm1.plot_info_pr_step(EVALUATION_EPISODES)
-swarm1.plot_steps(EVALUATION_EPISODES)
 
-if(EVALUATION_EPISODES == 1):
-    swarm1.plot_single_episode(env)
-else:
-    swarm1.plot_trajectories(env, EVALUATION_EPISODES)
