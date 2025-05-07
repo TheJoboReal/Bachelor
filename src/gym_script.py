@@ -471,6 +471,7 @@ class swarm:
         self.info_pr_step = []
         self.training_info = []
         self.info_pr_step_training = []
+        self.step_pr_episode = []
 
     def state_visited(self, obs):
         x, y = obs['agent']
@@ -654,6 +655,7 @@ class swarm:
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
             self.update_episode_trajectory()
+            self.step_pr_episode.append(steps)
 
             progress_bar.update(1)
 
@@ -737,6 +739,33 @@ class swarm:
         plt.title('Info Gain per Episode')
         plt.legend()
         plt.savefig("plots/info_pr_episode.png", dpi=500)
+
+    def plot_steps(self, number_of_episodes, window_size=50):
+        """Plots info gain per episode with rolling mean and variance shading"""
+        plt.figure()
+
+        x = range(number_of_episodes)
+        y = np.array(self.step_pr_episode[:number_of_episodes])
+
+        # Compute rolling mean and standard deviation
+        y_smooth = pd.Series(y).rolling(window=window_size, min_periods=1).mean()
+        y_std = pd.Series(y).rolling(window=window_size, min_periods=1).std()
+
+        # Plot raw data faintly
+        plt.plot(x, y, alpha=0.2, label="Steps pr Episode", color='gray')
+
+        # Plot rolling mean
+        plt.plot(x, y_smooth, label="Smoothed Info Gain", color='red')
+
+        # Shaded area: Mean ± 1 standard deviation
+        plt.fill_between(x, y_smooth - y_std, y_smooth + y_std, color='red', alpha=0.2)
+        # :TODO promt 95% standard deviation
+
+        plt.xlabel('Episodes')
+        plt.ylabel('Steps')
+        plt.title('Steps per Episode')
+        plt.legend()
+        plt.savefig("plots/steps_pr_episode.png", dpi=500)
 
     def plot_training_info(self, number_of_episodes, window_size=50):
         """Plots info gain per episode with rolling mean and variance shading"""
@@ -1029,6 +1058,7 @@ swarm1.plot_reward_episode(EVALUATION_EPISODES)
 swarm1.plot_revisited(EVALUATION_EPISODES)
 swarm1.plot_info(EVALUATION_EPISODES)
 swarm1.plot_info_pr_step(EVALUATION_EPISODES)
+swarm1.plot_steps(EVALUATION_EPISODES)
 
 if(EVALUATION_EPISODES == 1):
     swarm1.plot_single_episode(env)
