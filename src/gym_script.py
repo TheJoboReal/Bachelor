@@ -194,21 +194,19 @@ class GridWorldEnv(gym.Env):
     def check_nearby_agents(self):
         agent_x, agent_y = self._agent_location
 
-        agent_locations = self.agents_location_list
+        locations = self.agents_location_list
             
-        if len(agent_locations) == 0:
-            self._POI_direction = np.zeros(8)
-            return
-        # if any(np.array_equal(self._agent_location, loc) for loc in agent_locations):
-        #     self._nearby_agents[8] = 1
-        #     return
+        # Take the one closest to the agent
+        distances = [
+            np.linalg.norm(np.array(location) - np.array([agent_x, agent_y])) 
+            if not np.array_equal(location, [agent_x, agent_y]) else float('inf') 
+            for location in locations
+        ]
+        nearest_location_index = np.argmin(distances)
+        location_x, location_y = locations[nearest_location_index]
 
-        distances = [np.linalg.norm(np.array(poi) - np.array([agent_x, agent_y])) for poi in agent_locations]
-        closest_agent_index = np.argmin(distances)
-        agent_x, agent_y = agent_locations[closest_agent_index]
-
-        dx = agent_x - agent_x
-        dy = agent_y - agent_y
+        dx = location_x - agent_x
+        dy = location_y - agent_y
 
 
         # Normalize direction to one of 8 compass directions
@@ -219,6 +217,7 @@ class GridWorldEnv(gym.Env):
 
         # Find the matching index in _action_to_direction
         direction_vector = np.array([dx, dy])
+        # print(direction_vector)
         direction_index = None
         for index, (ddx, ddy) in self._action_to_direction.items():
             if np.array_equal(direction_vector, np.array([ddx, ddy])):
@@ -229,6 +228,7 @@ class GridWorldEnv(gym.Env):
         self._nearby_agents = np.zeros(8)
         if direction_index is not None:
             self._nearby_agents[direction_index] = 1
+        # print(self._nearby_agents)
 
 
     def set_POI(self, x, y):
