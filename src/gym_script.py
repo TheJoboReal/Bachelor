@@ -14,7 +14,7 @@ import math
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table: "))
 
 N_EPISODES = 10000
-N_AGENTS = 2
+N_AGENTS = 4
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
 ALPHA = 0.1
@@ -962,103 +962,18 @@ if(input == 1):
 elif(input == 0):
     q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
-agent1 = SAR_agent(
-    0,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-
-agent2 = SAR_agent(
-    1,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent3 = SAR_agent(
-    3,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent4 = SAR_agent(
-    4,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent5 = SAR_agent(
-    5,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent6 = SAR_agent(
-    6,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent7 = SAR_agent(
-    7,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent8 = SAR_agent(
-    8,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agent9 = SAR_agent(
-    9,
-    env=env,
-    alpha=ALPHA,
-    beta=BETA,
-    q_values=q_values,
-    epsilon=EPSILON,
-    gamma=GAMMA
-)
-
-agents = []
-agents.append(agent1)
-# agents.append(agent2)
-# agents.append(agent3)
-# agents.append(agent4)
-# agents.append(agent5)
+agents = [
+    SAR_agent(
+        agent_id=i,
+        env=env,
+        alpha=ALPHA,
+        beta=BETA,
+        q_values=q_values,
+        epsilon=EPSILON,
+        gamma=GAMMA
+    )
+    for i in range(N_AGENTS)
+]
 
 
 #----------------------------------- Hyper parameters --------------------------------------------------- #
