@@ -166,6 +166,14 @@ class GridWorldEnv(gym.Env):
                 agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
             else:
                 agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
+
+    def spawn_agents_uniform(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
+        # We need the following line to seed self.np_random
+        super().reset(seed=seed)
+
+        location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
+        for agent in agents:
+            agent.location = location
         
 
     def getReward(self):
@@ -488,14 +496,6 @@ class swarm:
         x, y = obs['agent']
         self.visited_states[y][x] = 1
 
-    def swarm_spawn_random(self, info):
-        self.env.spawn_agents_random(self.agents)
-    
-
-    def swarm_spawn_uniform(self, info):
-        for agent in self.agents:
-            agent.agent_spawn(info)
-
     def state_has_been_visited(self, obs):
         x, y = obs['agent']
         return self.visited_states[y][x] == 1
@@ -567,8 +567,7 @@ class swarm:
 
             seed += 45
 
-            # self.swarm_spawn_random(info)
-            self.env.spawn_agents_random(self.agents, seed=seed)
+            self.env.spawn_agents_uniform(self.agents, seed=seed)
             # for agent in agents:
             #     print("agent: ", agent.agent_id, " Location: ", agent.location)
 
@@ -631,7 +630,7 @@ class swarm:
 
             seed += 45
             
-            self.env.spawn_agents_random(self.agents, seed=seed)
+            self.env.spawn_agents_uniform(self.agents, seed=seed)
             self.reset_trajectory()
 
             agent.add_trajectory(info)
