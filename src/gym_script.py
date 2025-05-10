@@ -23,7 +23,7 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 10
+EVALUATION_EPISODES = 100
 SEED = 643
 
 #----------------------------------- World--------------------------------------------------- #
@@ -291,7 +291,7 @@ class GridWorldEnv(gym.Env):
 
         self._agent_location = agent.location
 
-        self.visited_states[agent.location[0], agent.location[1]] = 1
+        self.visited_states[agent.location[0], agent.location[1]] += 1
 
     
         # Reset agent location for nearby agent observation
@@ -508,7 +508,8 @@ class swarm:
         revisited = 0
         for i in range(train_env.size):
             for j in range(train_env.size):
-                revisited += train_env.visited_states[i][j]
+                if train_env.visited_states[i][j] > 1:
+                    revisited += train_env.visited_states[i][j] - 1
         self.revisits.append(revisited)
     
     def accum_info(self,train_env):
