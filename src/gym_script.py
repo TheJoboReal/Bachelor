@@ -183,18 +183,30 @@ class GridWorldEnv(gym.Env):
     def check_rewards_near(self):
         x, y = self._agent_location
         self._reward_near = np.zeros(8)  # Reset to zeros
+        max_reward = float('-inf')
+        max_idx = -1
+
+        # First pass: apply base logic and find max positive reward
         for idx, (dx, dy) in self._action_to_direction.items():
             nx, ny = x + dx, y + dy
             if 0 <= nx < self.size and 0 <= ny < self.size:
                 reward = self.world[nx][ny]
                 if reward > 0:
                     self._reward_near[idx] = 2
+                    if reward > max_reward:
+                        max_reward = reward
+                        max_idx = idx
                 elif reward == 0:
                     self._reward_near[idx] = 1
                 else:
                     self._reward_near[idx] = 0
             else:
                 self._reward_near[idx] = 0
+
+        # Second pass: set highest reward direction to 3
+        if max_idx != -1:
+            self._reward_near[max_idx] = 3
+
 
     def update_global_location(self):
         self.global_location[self._agent_location[0], self._agent_location[1]] = 1
