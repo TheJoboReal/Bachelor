@@ -111,7 +111,7 @@ class GridWorldEnv(gym.Env):
         self.world = heatmap_scaled
         # self.normalize_env_reward()
         self.scale_env()
-        # self.fill_white_space()
+        self.fill_white_space()
 
     def reset_visited_states(self):
         self.visited_states = np.zeros((self.size, self.size))
@@ -534,9 +534,17 @@ class swarm:
 
     def calc_info_pr_episode_training(self, train_env, steps):
         visited_rewards = 0
+        calc_matrix = np.zeros((train_env.size,train_env.size))
         for i in range(train_env.size):
             for j in range(train_env.size):
-                visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
+                if train_env.visited_states[i][j] >= 1:
+                    calc_matrix[i][j] = 1
+                else:
+                    calc_matrix[i][j] = 0
+
+        for i in range(train_env.size):
+            for j in range(train_env.size):
+                visited_rewards += self.env.world[i][j] * calc_matrix[i][j]
         total_rewards = np.sum(self.env.world)
         
         info_pr_episode = visited_rewards / total_rewards
