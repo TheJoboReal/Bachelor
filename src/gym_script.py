@@ -25,6 +25,7 @@ EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 100
 SEED = 643
+BATTERY_THRESHOLD = 10
 
 #----------------------------------- World--------------------------------------------------- #
 
@@ -164,8 +165,10 @@ class GridWorldEnv(gym.Env):
             # Generate two different random locations for agents
             if i % 2 == 0:
                 agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
+                agent.spawn_location = agent.location
             else:
                 agent.location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
+                agent.spawn_location = agent.location
 
     def spawn_agents_uniform(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
@@ -174,6 +177,7 @@ class GridWorldEnv(gym.Env):
         location = self.np_random.integers(0, self.size - 1, size=2, dtype=int)
         for agent in agents:
             agent.location = location
+            agent.spawn_location = location
         
 
     def getReward(self):
@@ -352,6 +356,9 @@ class SAR_agent:
         self.gamma = gamma
         self.beta = beta
 
+        self.battery_percent = 100
+        self.spawn_point= np.array([-1, -1], dtype=np.int32)
+
         self.trajectory = []
         self.training_error = []
 
@@ -368,6 +375,14 @@ class SAR_agent:
 
     def write_q_table(self):
             np.save(f"q_tables/q_table.npy", dict(self.q_values))
+        
+    def battery_handler(self):
+        self.battery_percent -= np.random.uniform(0, 3) # Random float from 0 to 3
+        if self.battery_percent < BATTERY_THRESHOLD:
+            self.location = self.spawn_point
+            self.battery_percent = 100
+            print("Agent: ", self.agent_id)
+
         
     def get_state(self, obs: dict):
         reward_near = obs["reward_near"]
@@ -614,6 +629,7 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
+                    agent.battery_handler()
 
 
             
@@ -674,6 +690,7 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
+                    agent.battery_handler()
 
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
