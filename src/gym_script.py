@@ -13,7 +13,7 @@ import math
 
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table: "))
 
-N_EPISODES = 10000
+N_EPISODES = 20000
 N_AGENTS = 4
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
@@ -25,7 +25,7 @@ EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 100
 SEED = 643
-NUMBER_OF_POIS = 4
+NUMBER_OF_POIS = 1
 BATTERY_THRESHOLD = 10
 
 #----------------------------------- World--------------------------------------------------- #
@@ -264,7 +264,7 @@ class GridWorldEnv(gym.Env):
         threshold = total/count
         return threshold
 
-    def auto_poi(self, threshold, min_distance=5):
+    def auto_poi(self, threshold, min_distance=6):
         # Assuming self.world is a 2D numpy array of shape (size, size)
         poi_candidates = []
         for i in range(1, self.size - 1):  # avoid edges
@@ -298,7 +298,8 @@ class GridWorldEnv(gym.Env):
         agent_x, agent_y = self._agent_location
 
         # Find the coordinates of the POI (assuming one POI with value 1 in self.POI_world)
-        poi_coords = self._agent_poi[agent.agent_id]
+        # poi_coords = self._agent_poi[agent.agent_id]
+        poi_coords = self._poi_list
             
         if len(poi_coords) == 0:
             # No POI set
@@ -588,7 +589,8 @@ class swarm:
         visited_rewards = 0
         for i in range(train_env.size):
             for j in range(train_env.size):
-                visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
+                if train_env.visited_states[i][j] >= 1:
+                    visited_rewards += self.env.world[i][j] * 1
         total_rewards = np.sum(self.env.world)
         return visited_rewards / total_rewards
 
