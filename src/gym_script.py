@@ -46,7 +46,6 @@ class GridWorldEnv(gym.Env):
 
         # Define the agent and target location; randomly chosen in `reset` and updated in `step`
         self._agent_location = np.array([1, 1], dtype=np.int32)
-        self._visited_states_near = np.zeros(8)
         self._reward_near = np.zeros(8)
         self._nearby_agents = np.zeros(8)
         self._POI_direction = np.zeros(8)
@@ -57,7 +56,6 @@ class GridWorldEnv(gym.Env):
         # Observations are dictionaries with the agent's and the target's location.
         self.observation_space = gym.spaces.Dict(
             {
-            "visited_states_near": gym.spaces.Box(0, 1, shape=(5, 5), dtype=np.int32),
             "reward_near": gym.spaces.Box(0, 10, shape=(8,), dtype=np.int32),
             "nearby_agents": gym.spaces.Box(0, 1, shape=(9,), dtype=int),
             "POI_direction": gym.spaces.Box(0, 1, shape=(8,), dtype=int),
@@ -135,7 +133,6 @@ class GridWorldEnv(gym.Env):
 
     def _get_obs(self):
         return {
-            "visited_states_near": self._visited_states_near,
             "reward_near": self._reward_near,
             "nearby_agent": self._nearby_agents,
             "POI_vector": self._POI_direction,
@@ -426,11 +423,10 @@ class SAR_agent:
             np.save(f"q_tables/q_table.npy", dict(self.q_values))
         
     def battery_handler(self):
-        self.battery_percent -= np.random.uniform(0, 3) # Random float from 0 to 3
+        self.battery_percent -= np.random.uniform(0, 1) # Random float from 0 to 3
         if self.battery_percent < BATTERY_THRESHOLD:
             self.location = self.spawn_point
             self.battery_percent = 100
-            print("Agent: ", self.agent_id)
 
         
     def get_state(self, obs: dict):
@@ -584,7 +580,7 @@ class swarm:
         revisited = 0
         for i in range(train_env.size):
             for j in range(train_env.size):
-                if train_env.visited_states[i][j] > 1:
+                if train_env.visited_states[i][j] >= 1:
                     revisited += train_env.visited_states[i][j] - 1
         self.revisits.append(revisited)
     
