@@ -25,6 +25,7 @@ EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 100
 SEED = 643
+NUMBER_OF_POIS = 4
 BATTERY_THRESHOLD = 10
 
 #----------------------------------- World--------------------------------------------------- #
@@ -112,6 +113,9 @@ class GridWorldEnv(gym.Env):
         self.world = heatmap_scaled
         # self.normalize_env_reward()
         self.scale_env()
+        threshold = self.make_threshold()
+        print(threshold)
+        self.auto_poi(threshold)
         # self.fill_white_space()
 
     def reset_visited_states(self):
@@ -247,6 +251,51 @@ class GridWorldEnv(gym.Env):
 
     def set_POI(self, x, y):
         self._poi_list.append((x, y))
+
+
+    def make_threshold(self):
+        total = 0
+        count = 0
+        for i in range(self.size):
+            for j in range(self.size):
+                reward = self.world[i][j]
+                if reward > 0:
+                    total += reward
+                    count += 1
+        if count == 0:
+            return 0.0  # avoid division by zero
+        threshold = total/count
+        return threshold
+
+    def auto_poi(self, threshold, min_distance=5):
+        # Assuming self.world is a 2D numpy array of shape (size, size)
+        poi_candidates = []
+        for i in range(1, self.size - 1):  # avoid edges
+            for j in range(1, self.size - 1):
+                square = self.world[i-1:i+2, j-1:j+2]  # 3x3 window
+                reward_average = np.mean(square)
+                
+                if reward_average >= threshold:
+                    poi_candidates.append(((i, j), reward_average))
+
+
+        # Sort by average reward in descending order
+        poi_candidates.sort(key=lambda x: x[1], reverse=True)
+
+        selected_pois = []
+
+        for (i, j), avg in poi_candidates:
+            too_close = False
+            for (pi, pj) in selected_pois:
+                if abs(pi - i) + abs(pj - j) < min_distance:  # Manhattan distance
+                    too_close = True
+                    break
+            if not too_close:
+                selected_pois.append((i, j))
+                self._poi_list.append((i, j))
+            if len(selected_pois) == NUMBER_OF_POIS:
+                break
+
 
     def get_POI_direction(self, agent):
         agent_x, agent_y = self._agent_location
@@ -951,20 +1000,8 @@ env = GridWorldEnv(size=SIZE)
 # env.random_env()
 # env.setReward(4, 4, 9)
 env.heatmap_env()
+print(env._poi_list)
 
-# env.setReward(2, 8, 10)
-env.setReward(2, 2, 10)
-# env.setReward(9, 2, 10)
-
-# env.set_POI(2, 8)
-# env.set_POI(4, 9)
-# env.set_POI(9, 2)
-
-env.set_POI(7, 2)
-env.set_POI(10, 5)
-env.set_POI(9, 7)
-env.set_POI(11, 16)
-env.set_POI(17, 17)
 
 # plt.gca().invert_yaxis()
 # plt.imshow(env.world, cmap='viridis', origin='upper')
