@@ -23,7 +23,7 @@ SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 100
+EVALUATION_EPISODES = 4
 SEED = 643
 NUMBER_OF_POIS = 1
 BATTERY_THRESHOLD = 10
@@ -598,7 +598,8 @@ class swarm:
         visited_rewards = 0
         for i in range(train_env.size):
             for j in range(train_env.size):
-                visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
+                if train_env.visited_states[i][j] >= 1:
+                    visited_rewards += self.env.world[i][j] * 1
         total_rewards = np.sum(self.env.world)
         
         info_pr_episode = visited_rewards / total_rewards
@@ -610,7 +611,8 @@ class swarm:
         visited_rewards = 0
         for i in range(train_env.size):
             for j in range(train_env.size):
-                visited_rewards += self.env.world[i][j] * train_env.visited_states[i][j]
+                if train_env.visited_states[i][j] >= 1:
+                    visited_rewards += self.env.world[i][j] * 1
         total_rewards = np.sum(self.env.world)
         
         info_pr_episode = visited_rewards / total_rewards
