@@ -674,7 +674,7 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
-                    agent.battery_handler()
+                    # agent.battery_handler()
 
 
             
@@ -735,7 +735,7 @@ class swarm:
                     done = terminated or truncated
                     agent.obs = copy.deepcopy(next_obs)
                     steps += 1
-                    agent.battery_handler()
+                    # agent.battery_handler()
 
             self.calc_revisits(train_env)
             self.calc_info_pr_episode(train_env, steps)
