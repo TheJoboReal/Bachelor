@@ -1,2 +1,3 @@
 src/q_tables
-.venv
+src/.venv
+bin
