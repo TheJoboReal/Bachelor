@@ -783,25 +783,35 @@ class swarm:
         plt.savefig("plots/reward_pr_episode.png", dpi=500)
 
     def plot_acum_info_pr_step_per_episode(self):
-        """Plots all episodes' step-wise data starting at step 0 for each episode on the same plot."""
+        """Plots all episodes' step-wise data with unique colors and episode labels."""
         import matplotlib.pyplot as plt
         import numpy as np
         import os
 
         plt.figure(figsize=(12, 6))
 
+        num_episodes = len(self.acum_step_info_pr_episode)
+        cmap = plt.get_cmap('tab20')  # Good for up to 20 distinct colors
+
         for idx, episode_data in enumerate(self.acum_step_info_pr_episode):
-            steps = np.arange(len(episode_data))  # Always start from 0
-            episode_data = np.array(episode_data)  # In case it's not already an array
-            plt.plot(steps, episode_data, alpha=0.3, linewidth=1, color='tab:blue')
+            steps = np.arange(len(episode_data))
+            color = cmap(idx % 20)  # Reuse colors cyclically if > 20 episodes
+            plt.plot(steps, episode_data, label=f"Episode {idx + 1}", color=color, linewidth=1.5)
 
         plt.xlabel('Steps (starting at 0 for every episode)')
         plt.ylabel('Info Value')
         plt.title('All Episodes Overlaid (Each Starting from Step 0)')
         plt.grid(True)
 
+        # If too many episodes, shrink legend or skip it
+        if num_episodes <= 20:
+            plt.legend(loc='best', fontsize='small')
+        else:
+            plt.legend(loc='best', fontsize='x-small', ncol=2)
+
         os.makedirs("plots", exist_ok=True)
-        plt.savefig("plots/acum_info_pr_step_overlay_fixed.png", dpi=500)
+        plt.savefig("plots/acum_info_pr_step_colored_legend.png", dpi=500)
+
 
 
     def plot_revisited(self, number_of_episodes, window_size=50,):
@@ -1083,6 +1093,3 @@ if(input == 1):
         swarm1.plot_single_episode(env)
     else:
         swarm1.plot_trajectories(env, EVALUATION_EPISODES)
-
-
-display(swarm1.acum_step_info_pr_episode)
