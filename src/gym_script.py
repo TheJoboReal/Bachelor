@@ -1082,7 +1082,7 @@ if(input == 0 or input == 2):
     swarm1.plot_training_info(N_EPISODES)
 
 if(input == 1):
-    swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
+    swarm1.evaluate_swarm(EVALUATION_STEPS,EVALUATION_EPISODES)
     swarm1.plot_reward_episode(EVALUATION_EPISODES)
     swarm1.plot_revisited(EVALUATION_EPISODES)
     swarm1.plot_info(EVALUATION_EPISODES)
