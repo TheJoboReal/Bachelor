@@ -13,7 +13,7 @@ import math
 
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table: "))
 
-N_EPISODES = 20000
+N_EPISODES = 10000
 N_AGENTS = 4
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
@@ -25,7 +25,7 @@ EPSILON = 0.8
 EVALUATION_STEPS = SIZE * SIZE
 EVALUATION_EPISODES = 4
 SEED = 643
-NUMBER_OF_POIS = 1
+NUMBER_OF_POIS = 4
 BATTERY_THRESHOLD = 10
 
 #----------------------------------- World--------------------------------------------------- #
@@ -103,7 +103,7 @@ class GridWorldEnv(gym.Env):
         self.world = np.random.randint(1, 11, size=(self.size, self.size))
 
     def heatmap_env(self):
-        with open("../Kaspers_chad_pdfer_mm/heatmap/data/heatmap.pkl", "rb") as f:
+        with open("../heatmap/data/plots/heatmap_file.pkl", "rb") as f:
             heatmap = np.rot90(pickle.load(f), k=1)
         
         heatmap_scaled = zoom(heatmap, (self.size / heatmap.shape[0], self.size / heatmap.shape[1]), order=1)  # Bilinear interpolation
@@ -555,6 +555,8 @@ class swarm:
         self.visited_states = [[0 for _ in range(env.size)] for _ in range(env.size)]
         self.cum_reward = []    # :TODO overvej nyt navn
         self.episode_cum_reward = [0 for _ in range(N_EPISODES)]
+        self.acum_info_pr_step = []
+        self.acum_step_info_pr_episode = []
         self.n_episodes = n_episodes
         self.revisits = []
         self.info_pr_episode = []
@@ -592,7 +594,9 @@ class swarm:
                 if train_env.visited_states[i][j] >= 1:
                     visited_rewards += self.env.world[i][j] * 1
         total_rewards = np.sum(self.env.world)
-        return visited_rewards / total_rewards
+        acum = visited_rewards / total_rewards
+        self.acum_info_pr_step.append(acum)
+        return acum
 
     def calc_info_pr_episode_training(self, train_env, steps):
         visited_rewards = 0
@@ -745,6 +749,8 @@ class swarm:
             self.calc_info_pr_episode(train_env, steps)
             self.update_episode_trajectory()
             self.step_pr_episode.append(steps)
+            self.acum_step_info_pr_episode.append(self.acum_info_pr_step)
+            self.acum_info_pr_step = []
 
             progress_bar.update(1)
 
@@ -775,6 +781,28 @@ class swarm:
         plt.title('Reward per Episode')
         plt.legend()
         plt.savefig("plots/reward_pr_episode.png", dpi=500)
+
+    def plot_acum_info_pr_step_per_episode(self):
+        """Plots all episodes' step-wise data starting at step 0 for each episode on the same plot."""
+        import matplotlib.pyplot as plt
+        import numpy as np
+        import os
+
+        plt.figure(figsize=(12, 6))
+
+        for idx, episode_data in enumerate(self.acum_step_info_pr_episode):
+            steps = np.arange(len(episode_data))  # Always start from 0
+            episode_data = np.array(episode_data)  # In case it's not already an array
+            plt.plot(steps, episode_data, alpha=0.3, linewidth=1, color='tab:blue')
+
+        plt.xlabel('Steps (starting at 0 for every episode)')
+        plt.ylabel('Info Value')
+        plt.title('All Episodes Overlaid (Each Starting from Step 0)')
+        plt.grid(True)
+
+        os.makedirs("plots", exist_ok=True)
+        plt.savefig("plots/acum_info_pr_step_overlay_fixed.png", dpi=500)
+
 
     def plot_revisited(self, number_of_episodes, window_size=50,):
         """Plots revisits per episode with rolling mean and variance shading"""
@@ -1050,9 +1078,11 @@ if(input == 1):
     swarm1.plot_info(EVALUATION_EPISODES)
     swarm1.plot_info_pr_step(EVALUATION_EPISODES)
     swarm1.plot_steps(EVALUATION_EPISODES)
+    swarm1.plot_acum_info_pr_step_per_episode()
     if(EVALUATION_EPISODES == 1):
         swarm1.plot_single_episode(env)
     else:
         swarm1.plot_trajectories(env, EVALUATION_EPISODES)
 
 
+display(swarm1.acum_step_info_pr_episode)
