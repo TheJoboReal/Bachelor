@@ -13,7 +13,7 @@ import math
 
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table or 2 to train a model using a predefined Q-table: "))
 
-N_EPISODES = 10000
+N_EPISODES = 20000
 N_AGENTS = 4
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
@@ -22,10 +22,10 @@ GAMMA = 0.9
 SIZE = 30
 STEPS = SIZE * SIZE
 EPSILON = 0.8
-EVALUATION_STEPS = SIZE * SIZE
-EVALUATION_EPISODES = 4
+EVALUATION_STEPS = 9999999999999999999
+EVALUATION_EPISODES = 1
 SEED = 643
-NUMBER_OF_POIS = 4
+NUMBER_OF_POIS = 8
 BATTERY_THRESHOLD = 10
 
 #----------------------------------- World--------------------------------------------------- #
@@ -157,6 +157,11 @@ class GridWorldEnv(gym.Env):
         info = self._get_info()
 
         return observation, info
+
+    def spawn_agent_origo(self, agents):
+        for i, agent in enumerate(agents):
+            agent.location = np.array([0, 0], dtype=int)
+            agent.spawn_location = agent.location
     
     def spawn_agents_random(self, agents, seed: Optional[int] = None, options: Optional[dict] = None):
         # We need the following line to seed self.np_random
@@ -502,6 +507,39 @@ class SAR_agent:
             agent_state = self.get_state(obs)
             return int(np.argmax(self.q_values[agent_state]))
 
+    def get_action_sweep(self):
+        # Sweep right to left through the environment
+        x, y = self.location
+        if not hasattr(self, "_sweep_direction"):
+            self._sweep_direction = 1  # 1 for right, -1 for left
+        if not hasattr(self, "_sweep_row"):
+            self._sweep_row = 0
+
+        size = self.env.size
+
+        # If at the end of the row, move up and reverse direction
+        if (self._sweep_direction == 1 and x >= size - 1) or (self._sweep_direction == -1 and x <= 0):
+            if y < size - 1:
+                self._sweep_row += 1
+                self._sweep_direction *= -1
+                next_x = x
+                next_y = y + 1
+            else:
+                # At the last row, stay in place
+                next_x = x
+                next_y = y
+        else:
+            next_x = x + self._sweep_direction
+            next_y = y
+
+        # Find the action that moves to (next_x, next_y)
+        for action, (dx, dy) in self.env._action_to_direction.items():
+            if (x + dx == next_x) and (y + dy == next_y):
+                return action
+
+        # If no valid action found (should not happen), stay in place
+        return 0
+
     def update(
         self,
         obs: dict,  
@@ -712,7 +750,8 @@ class swarm:
 
             seed += 45
             
-            self.env.spawn_agents_uniform(self.agents, seed=seed)
+            # self.env.spawn_agents_uniform(self.agents, seed=seed)
+            self.env.spawn_agent_origo(self.agents)
             self.reset_trajectory()
 
             agent.add_trajectory(info)
@@ -725,7 +764,7 @@ class swarm:
             while not done:
 
                 for agent in self.agents:
-                    agent.action = agent.mega_greedy_swarm_action(agent.obs,info)
+                    agent.action = agent.get_action_sweep()
 
                 for agent in self.agents:
                     train_env.state_penalize()
@@ -737,7 +776,7 @@ class swarm:
 
                     self.episode_cum_reward[episode] += reward
 
-                    if steps >= max_steps or self.accum_info(train_env) > 0.8:
+                    if steps >= max_steps or self.accum_info(train_env) == 1:
                         terminated = True
 
                     done = terminated or truncated
@@ -1082,7 +1121,7 @@ if(input == 0 or input == 2):
     swarm1.plot_training_info(N_EPISODES)
 
 if(input == 1):
-    swarm1.evaluate_swarm(SIZE*SIZE,EVALUATION_EPISODES)
+    swarm1.evaluate_swarm(EVALUATION_STEPS,EVALUATION_EPISODES)
     swarm1.plot_reward_episode(EVALUATION_EPISODES)
     swarm1.plot_revisited(EVALUATION_EPISODES)
     swarm1.plot_info(EVALUATION_EPISODES)
