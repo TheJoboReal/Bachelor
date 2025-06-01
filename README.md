@@ -11,4 +11,4 @@ include inter-agent coordination, path planning, and task distribution. The prop
 framework ultimately seeks to diminish search duration and personnel needs, thus
 enhancing the overall effectiveness and safety of rescue operations.
 
-![[src/trajectories/MA_with_nearby_agent_traj.png]]
+![MA with nearby agent trajectory](src/trajectories/MA_with_nearby_agent_traj.png)
