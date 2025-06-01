@@ -13,7 +13,7 @@ import math
 
 input = int(input("Enter 0 to train a new Q-table or 1 to evaluate an existing Q-table or 2 to train a model using a predefined Q-table: "))
 
-N_EPISODES = 10000
+N_EPISODES = 10
 N_AGENTS = 4
 UPDATE_STEP = 1     # Update q_values after each step
 BETA = 0.6
@@ -1051,7 +1051,7 @@ env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
 q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
 if(input == 1 or input == 2):
-    with open('q_values.pkl', 'rb') as f:
+    with open('q_tables/q_table.pkl', 'rb') as f:
         q_values = pickle.load(f)
 elif(input == 0):
     q_values = defaultdict(lambda: np.zeros(env.action_space.n))
@@ -1077,7 +1077,7 @@ swarm1 = swarm(env, agents, N_EPISODES, UPDATE_STEP)
 
 if(input == 0 or input == 2):
     swarm1.train_swarm(STEPS)
-    with open('q_values.pkl', 'wb') as f:
+    with open('q_tables/q_table.pkl', 'wb') as f:
         pickle.dump(q_values, f)
     swarm1.plot_training_info(N_EPISODES)
 
