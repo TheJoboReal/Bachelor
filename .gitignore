@@ -1,8 +1,9 @@
 src/q_tables
 src/.venv
 bin
-heatmap
-Kaspers_chad_pdfer_mm
-bin
+# share
+# heatmap
+# Kaspers_chad_pdfer_mm
+# include
 etc
 lib
