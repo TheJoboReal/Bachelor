@@ -4,12 +4,11 @@ import gymnasium as gym
 from tqdm import tqdm
 from matplotlib import pyplot as plt
 import dill as pickle
-from IPython.display import display, clear_output
+from IPython.display import clear_output
 import copy
 from scipy.ndimage import zoom
 import pandas as pd
 from collections import defaultdict
-import math
 
 input = int(
     input(
@@ -782,6 +781,67 @@ class swarm:
         plt.legend()
         plt.savefig("plots/reward_pr_episode.png", dpi=500)
 
+    def animate_trajectories(
+        self, train_env, num_episodes, episodes_to_animate=None, max_agents=5, time_step=0.1
+    ):
+        import matplotlib.animation as animation
+
+        world_map = train_env.world
+
+        if episodes_to_animate is None:
+            episodes_to_animate = list(range(num_episodes))
+
+        num_plots = len(episodes_to_animate)
+        cols = 2
+        rows = int(np.ceil(num_plots / cols))
+
+        fig, axs = plt.subplots(rows, cols, figsize=(4 * cols, 4.5 * rows))
+        axs = axs.flatten()
+
+        def update(frame):
+            for i, ep_idx in enumerate(episodes_to_animate):
+                ax = axs[i]
+                ax.clear()
+                ax.imshow(
+                    world_map.T,
+                    origin="lower",
+                    cmap="Greys",
+                    interpolation="nearest",
+                    extent=[0, world_map.shape[0], 0, world_map.shape[1]],
+                )
+                swarm_traj = self.episode_trajectory[ep_idx]
+                num_agents = min(len(self.agents), max_agents)
+                for agent_id in range(num_agents):
+                    traj = np.array(swarm_traj[agent_id])
+                    if frame < len(traj):
+                        ax.plot(traj[:frame+1, 0], traj[:frame+1, 1], label=f"A{agent_id}", alpha=0.7)
+                        ax.scatter(
+                            traj[0, 0],
+                            traj[0, 1],
+                            s=40,
+                            marker="o",
+                            edgecolors="k",
+                            facecolors="none",
+                        )
+                ax.set_title(f"Episode {ep_idx + 1}")
+                ax.set_xlim(0, train_env.size)
+                ax.set_ylim(0, train_env.size)
+                ax.set_xlabel("X")
+                ax.set_ylabel("Y")
+                ax.label_outer()
+            return axs
+
+        max_len = max(
+            len(np.array(self.episode_trajectory[ep_idx][0]))
+            for ep_idx in episodes_to_animate
+        )
+        ani = animation.FuncAnimation(
+            fig, update, frames=max_len, interval=time_step * 1000, blit=False, repeat=False
+        )
+        plt.tight_layout(rect=[0, 0, 0.95, 0.95])
+        ani.save("plots/agent_trajectories.gif", writer="pillow", fps=int(1/time_step))
+        plt.show()
+
     def plot_acum_info_pr_step_per_episode(self):
         """Plots all episodes' step-wise data with unique colors and episode labels."""
         import matplotlib.pyplot as plt
@@ -1074,7 +1134,7 @@ print(env._poi_list)
 env_timelimit = gym.wrappers.TimeLimit(env, max_episode_steps=1000000)
 q_values = defaultdict(lambda: np.zeros(env.action_space.n))
 
-if input == 1 or input == 2:
+if input == 1 or input == 2 or input == 3:
     with open("q_tables/q_table.pkl", "rb") as f:
         q_values = pickle.load(f)
     q_values = defaultdict(lambda: np.zeros(env.action_space.n))
@@ -1116,3 +1176,7 @@ if input == 1:
         swarm1.plot_single_episode(env)
     else:
         swarm1.plot_trajectories(env, EVALUATION_EPISODES)
+
+if input == 3:
+    swarm1.evaluate_swarm(EVALUATION_STEPS, EVALUATION_EPISODES)
+    swarm1.animate_trajectories(env, EVALUATION_EPISODES, max_agents=N_AGENTS)
