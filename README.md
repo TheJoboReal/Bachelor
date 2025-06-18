@@ -1,4 +1,5 @@
 ### Abstract
+
 The deployment of autonomous drones in search-and-rescue operations represents
 a transformative advancement in disaster response, offering substantial benefits in
 scenarios characterized by hazards, time sensitivity, or logistical complexity. This
@@ -10,5 +11,9 @@ agents to prioritize areas of high significance. The primary challenges addresse
 include inter-agent coordination, path planning, and task distribution. The proposed
 framework ultimately seeks to diminish search duration and personnel needs, thus
 enhancing the overall effectiveness and safety of rescue operations.
+
+### Thesis
+
+Read the thesis [here](Thesis.pdf)
 
 ![MA with nearby agent trajectory](src/trajectories/MA_with_nearby_agent_traj.png)
